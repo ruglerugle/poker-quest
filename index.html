@@ -204,6 +204,17 @@ a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
 @media(max-width:560px){.ref-row{grid-template-columns:22px minmax(0,1fr);grid-template-areas:"n c" ". i"}
   .ref-rank{grid-area:n}.ref-cards{grid-area:c}.ref-info{grid-area:i}}
 
+/* Game-flow steps (stage 3: holdem rules) */
+.flow-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.flow-step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:12px;align-items:start;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.flow-num{font-size:12px;font-weight:950;color:#fff;background:var(--gold-dark);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.flow-title{font-size:13px;font-weight:900;color:#1c2f2b;margin-bottom:2px}
+.flow-desc{font-size:12px;color:var(--muted);line-height:1.65}
+.action-grid{display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px}
+@media(min-width:520px){.action-grid{grid-template-columns:1fr 1fr}}
+.action-item{font-size:12.5px;line-height:1.6}
+.action-item b{color:#8a6614}
+
 /* Compare (stage 2) */
 .vs-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .vs-divider{font-size:13px;font-weight:950;color:var(--gold-dark);flex-shrink:0}
@@ -640,7 +651,37 @@ function buildHoldem(root, ctx){
       explain: `最も強い5枚は ${bestDesc} で、「${correctName}」です。`,
     });
   }
-  root.innerHTML = `<div id="quiz-area"></div>`;
+  const FLOW = [
+    {title:'配札(ディール)', desc:'参加者全員に、他の人には見せない「ホールカード」が2枚ずつ裏向きで配られる。'},
+    {title:'プリフロップ', desc:'ホールカード2枚だけを見て、最初のベッティングラウンド。ディーラーの左隣2人は「スモールブラインド」「ビッグブラインド」と呼ばれる強制ベットを先に出しておくルール。'},
+    {title:'フロップ', desc:'コミュニティカードが3枚、テーブルの中央に表向きでオープンされる。ここから2回目のベッティングラウンド。'},
+    {title:'ターン', desc:'コミュニティカードが4枚目、1枚追加でオープン。3回目のベッティングラウンド。'},
+    {title:'リバー', desc:'コミュニティカードが5枚目、最後の1枚がオープン。4回目(最終)のベッティングラウンド。'},
+    {title:'ショーダウン', desc:'最後まで残ったプレイヤー同士で、ホールカード2枚+コミュニティカード5枚=合計7枚から作れる最強の5枚を比べ合う。一番強い役を持つ人がポット(賭け金の総額)をすべて獲得する。'},
+  ];
+  const flowHtml = FLOW.map((f,i)=>`
+    <div class="flow-step">
+      <div class="flow-num">${i+1}</div>
+      <div><div class="flow-title">${f.title}</div><div class="flow-desc">${f.desc}</div></div>
+    </div>`).join('');
+
+  root.innerHTML = `
+    <div class="ref-head">📖 テキサスホールデムの流れ</div>
+    <div class="flow-list">${flowHtml}</div>
+    <div class="chen-box">
+      <b>各ベッティングラウンドでできる5つのアクション</b>
+      <div class="action-grid">
+        <div class="action-item"><b>チェック</b>：誰もまだベットしていなければ、何も賭けずに次の人へパスできる。</div>
+        <div class="action-item"><b>ベット</b>：そのラウンドで最初にお金を賭ける。</div>
+        <div class="action-item"><b>コール</b>：相手のベットと同じ額を払って、勝負に残る。</div>
+        <div class="action-item"><b>レイズ</b>：相手のベットより多く賭けて、さらに強気に出る。</div>
+        <div class="action-item"><b>フォールド</b>：勝負を降りる。それまでに賭けた分は戻らないが、それ以上は失わない。</div>
+      </div>
+      全員がベット額をそろえる(コールする)かフォールドしたら、そのラウンドは終了。<b>フォールドで自分以外の全員が降りたら、ショーダウンなしでその時点で勝ち</b>になる。
+    </div>
+    <div class="quiz-head">✏️ クイズ：この7枚から作れる最強の役は？</div>
+    <div id="quiz-area"></div>
+  `;
   renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
 }
 
@@ -890,6 +931,8 @@ const STAGES = [
       {who:'coach', text:'世界で一番遊ばれているポーカーが「テキサスホールデム」だ。まず自分だけの「ホールカード」を2枚もらう。'},
       {who:'stu', text:'そこに場の「コミュニティカード」が加わるんですよね？'},
       {who:'coach', text:'そう。フロップで3枚、ターンで1枚、リバーで1枚、合計5枚が全員で共有される。自分の2枚と合わせた7枚から、一番強い5枚を選んで役にするんだ。'},
+      {who:'stu', text:'ベットのタイミングとか、途中で降りる仕組みとか、もっと細かい流れも知りたいです！'},
+      {who:'coach', text:'よし、下に配札からショーダウンまでの流れと、使える5つのアクションをまとめておいた。しっかり確認してから、クイズに挑戦してみよう。'},
     ],
     build: buildHoldem,
   },
