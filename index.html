@@ -204,12 +204,26 @@ a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
 @media(max-width:560px){.ref-row{grid-template-columns:22px minmax(0,1fr);grid-template-areas:"n c" ". i"}
   .ref-rank{grid-area:n}.ref-cards{grid-area:c}.ref-info{grid-area:i}}
 
-/* Game-flow steps (stage 3: holdem rules) */
-.flow-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
-.flow-step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:12px;align-items:start;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
-.flow-num{font-size:12px;font-weight:950;color:#fff;background:var(--gold-dark);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-.flow-title{font-size:13px;font-weight:900;color:#1c2f2b;margin-bottom:2px}
-.flow-desc{font-size:12px;color:var(--muted);line-height:1.65}
+/* Interactive Hold'em flow diagram + stepper (stage 3: holdem rules) */
+.holdem-flow-title{font-size:14px;font-weight:950;color:#1c2f2b;margin-bottom:8px}
+.pcard.back{background:repeating-linear-gradient(45deg,var(--felt),var(--felt) 4px,var(--felt-dark) 4px,var(--felt-dark) 8px);border-color:rgba(255,255,255,.35)}
+.holdem-diagram{padding:16px}
+.holdem-pot{text-align:center;color:#f3d99a;font-weight:950;font-size:14px;margin-bottom:10px}
+.holdem-board-row{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+.holdem-seats{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+.holdem-seat{display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(0,0,0,.22);border-radius:10px;padding:10px 12px;min-width:108px}
+.holdem-seat.you{background:rgba(217,164,65,.22);border:1px solid var(--gold)}
+.holdem-seat.winner{outline:2px solid #8ef0b0;box-shadow:0 0 0 3px rgba(142,240,176,.25)}
+.holdem-seat-name{color:#fff;font-size:11.5px;font-weight:900;white-space:nowrap}
+.holdem-seat-cards{display:flex;gap:3px}
+.holdem-seat-cards .pcard{width:34px;height:47px;padding:2px 3px}
+.holdem-seat-cards .pcard-corner{font-size:9px}
+.holdem-seat-cards .pcard-suit-big{font-size:15px}
+.holdem-seat-chip{font-size:10.5px;color:#f3d99a;font-weight:800;background:rgba(0,0,0,.3);border-radius:999px;padding:2px 10px;min-height:16px;text-align:center;white-space:nowrap}
+.holdem-caption{color:#e5f2eb;font-size:12.5px;line-height:1.7;margin-top:14px;background:rgba(0,0,0,.2);border-radius:8px;padding:10px 12px}
+.step-controls{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0}
+.step-progress{font-size:12px;color:var(--muted);font-weight:800;min-width:60px;text-align:center}
+
 .action-grid{display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px}
 @media(min-width:520px){.action-grid{grid-template-columns:1fr 1fr}}
 .action-item{font-size:12.5px;line-height:1.6}
@@ -651,23 +665,15 @@ function buildHoldem(root, ctx){
       explain: `最も強い5枚は ${bestDesc} で、「${correctName}」です。`,
     });
   }
-  const FLOW = [
-    {title:'配札(ディール)', desc:'参加者全員に、他の人には見せない「ホールカード」が2枚ずつ裏向きで配られる。'},
-    {title:'プリフロップ', desc:'ホールカード2枚だけを見て、最初のベッティングラウンド。ディーラーの左隣2人は「スモールブラインド」「ビッグブラインド」と呼ばれる強制ベットを先に出しておくルール。'},
-    {title:'フロップ', desc:'コミュニティカードが3枚、テーブルの中央に表向きでオープンされる。ここから2回目のベッティングラウンド。'},
-    {title:'ターン', desc:'コミュニティカードが4枚目、1枚追加でオープン。3回目のベッティングラウンド。'},
-    {title:'リバー', desc:'コミュニティカードが5枚目、最後の1枚がオープン。4回目(最終)のベッティングラウンド。'},
-    {title:'ショーダウン', desc:'最後まで残ったプレイヤー同士で、ホールカード2枚+コミュニティカード5枚=合計7枚から作れる最強の5枚を比べ合う。一番強い役を持つ人がポット(賭け金の総額)をすべて獲得する。'},
-  ];
-  const flowHtml = FLOW.map((f,i)=>`
-    <div class="flow-step">
-      <div class="flow-num">${i+1}</div>
-      <div><div class="flow-title">${f.title}</div><div class="flow-desc">${f.desc}</div></div>
-    </div>`).join('');
-
   root.innerHTML = `
     <div class="ref-head">📖 テキサスホールデムの流れ</div>
-    <div class="flow-list">${flowHtml}</div>
+    <div class="holdem-flow-title" id="holdem-flow-title"></div>
+    <div id="holdem-flow-diagram"></div>
+    <div class="step-controls">
+      <button class="btn" id="flow-prev">◀ 前へ</button>
+      <span class="step-progress" id="flow-progress"></span>
+      <button class="btn btn-primary" id="flow-next">次へ ▶</button>
+    </div>
     <div class="chen-box">
       <b>各ベッティングラウンドでできる5つのアクション</b>
       <div class="action-grid">
@@ -682,7 +688,83 @@ function buildHoldem(root, ctx){
     <div class="quiz-head">✏️ クイズ：この7枚から作れる最強の役は？</div>
     <div id="quiz-area"></div>
   `;
+  mountHoldemFlowStepper(root);
   renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
+}
+
+/* ---- illustrative walkthrough example used by the flow stepper above ---- */
+const HOLDEM_EX_BOARD = [[13,'d'],[7,'c'],[2,'d'],[9,'h'],[4,'s']];
+const HOLDEM_EX_SEATS = [
+  {key:'a', name:'相手A (SB)', hole:[[11,'d'],[11,'h']]},
+  {key:'b', name:'相手B (BB)', hole:[[8,'s'],[6,'s']]},
+  {key:'you', name:'あなた', hole:[[14,'c'],[13,'s']], isYou:true},
+];
+const HOLDEM_FLOW_STEPS = [
+  {title:'① 配札(ディール)', desc:'参加者全員に、他の人には見せない「ホールカード」が2枚ずつ裏向きで配られる。', board:0, seatCards:'back', pot:0, showBets:false},
+  {title:'② プリフロップ', desc:'ホールカード2枚だけを見て、最初のベッティングラウンド。ディーラーの左隣2人は「スモールブラインド」「ビッグブラインド」と呼ばれる強制ベットを先に出しておくルール。', board:0, seatCards:'you-only', pot:15, showBets:true},
+  {title:'③ フロップ', desc:'コミュニティカードが3枚、テーブルの中央に表向きでオープンされる。ここから2回目のベッティングラウンド。', board:3, seatCards:'you-only', pot:40, showBets:false},
+  {title:'④ ターン', desc:'コミュニティカードが4枚目、1枚追加でオープン。3回目のベッティングラウンド。', board:4, seatCards:'you-only', pot:90, showBets:false},
+  {title:'⑤ リバー', desc:'コミュニティカードが5枚目、最後の1枚がオープン。4回目(最終)のベッティングラウンド。', board:5, seatCards:'you-only', pot:150, showBets:false},
+  {title:'⑥ ショーダウン', desc:'最後まで残ったプレイヤー同士で、ホールカード2枚+コミュニティカード5枚=合計7枚から作れる最強の5枚を比べ合う。一番強い役を持つ人がポット(賭け金の総額)をすべて獲得する。', board:5, seatCards:'all', pot:150, showBets:false, showdown:true},
+];
+function renderHoldemDiagram(container, stepIdx){
+  const step = HOLDEM_FLOW_STEPS[stepIdx];
+  const boardCards = HOLDEM_EX_BOARD.slice(0, step.board).map(([r,s])=>mkCard(r,s));
+  const boardSlotsHtml = Array.from({length:5}, (_,i)=> i<step.board ? cardHtml(boardCards[i]) : `<div class="pcard back"></div>`).join('');
+
+  let winnerKey = null, resultsByKey = {};
+  if(step.showdown){
+    HOLDEM_EX_SEATS.forEach(s=>{
+      const hole = s.hole.map(([r,su])=>mkCard(r,su));
+      resultsByKey[s.key] = bestOf([...hole, ...boardCards]);
+    });
+    Object.entries(resultsByKey).forEach(([k,b])=>{
+      if(!winnerKey || compareEval(b.eval, resultsByKey[winnerKey].eval)>0) winnerKey = k;
+    });
+  }
+
+  const seatsHtml = HOLDEM_EX_SEATS.map(s=>{
+    let cardsHtml;
+    if(step.seatCards==='back') cardsHtml = '<div class="pcard back"></div><div class="pcard back"></div>';
+    else if(step.seatCards==='you-only') cardsHtml = s.isYou ? s.hole.map(([r,su])=>cardHtml(mkCard(r,su))).join('') : '<div class="pcard back"></div><div class="pcard back"></div>';
+    else cardsHtml = s.hole.map(([r,su])=>cardHtml(mkCard(r,su))).join('');
+    let chipHtml = '';
+    if(step.showBets){
+      const label = s.key==='a' ? 'SB 5' : s.key==='b' ? 'BB 10' : '';
+      chipHtml = label ? `<div class="holdem-seat-chip">${label}</div>` : '';
+    } else if(step.showdown){
+      chipHtml = `<div class="holdem-seat-chip">${catDisplayName(resultsByKey[s.key].eval)}</div>`;
+    }
+    const isWinner = step.showdown && s.key===winnerKey;
+    return `<div class="holdem-seat ${s.isYou?'you':''} ${isWinner?'winner':''}">
+      <div class="holdem-seat-name">${s.name}${isWinner?' 🏆':''}</div>
+      <div class="holdem-seat-cards">${cardsHtml}</div>
+      ${chipHtml}
+    </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="table-felt holdem-diagram">
+      <div class="holdem-pot">🪙 ポット: ${step.pot}</div>
+      <div class="holdem-board-row">${boardSlotsHtml}</div>
+      <div class="holdem-seats">${seatsHtml}</div>
+      <div class="holdem-caption">${step.desc}</div>
+    </div>`;
+}
+function mountHoldemFlowStepper(root){
+  let stepIdx = 0;
+  function render(){
+    qs('#holdem-flow-title', root).textContent = `${HOLDEM_FLOW_STEPS[stepIdx].title}（例：あなたはA♣K♠を持っている場面）`;
+    renderHoldemDiagram(qs('#holdem-flow-diagram', root), stepIdx);
+    qs('#flow-progress', root).textContent = `${stepIdx+1} / ${HOLDEM_FLOW_STEPS.length}`;
+    qs('#flow-prev', root).disabled = stepIdx===0;
+  }
+  qs('#flow-prev', root).addEventListener('click', ()=>{ if(stepIdx>0){ stepIdx--; render(); } });
+  qs('#flow-next', root).addEventListener('click', ()=>{
+    stepIdx = (stepIdx < HOLDEM_FLOW_STEPS.length-1) ? stepIdx+1 : 0;
+    render();
+  });
+  render();
 }
 
 /* =====================================================================
