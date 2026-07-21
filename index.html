@@ -242,6 +242,20 @@ a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
 .step-controls{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0}
 .step-progress{font-size:12px;color:var(--muted);font-weight:800;min-width:60px;text-align:center}
 
+/* Main pot / side pot mini-diagram (all-in scenario) */
+.action-pill.allin{background:#8b3fae}
+.action-pill.split{background:#8b3fae}
+.holdem-seat-chip.chip-allin{background:rgba(139,63,174,.65);color:#fff}
+.holdem-seat-stack{font-size:10px;color:#a9c7be;margin-top:-2px}
+.pot-split-row{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.pot-split-box{background:rgba(0,0,0,.25);border-radius:10px;padding:8px 18px;text-align:center;min-width:120px}
+.pot-split-box.side{background:rgba(139,63,174,.22)}
+.pot-split-label{font-size:10.5px;color:#cfe4de;font-weight:800}
+.pot-split-amount{font-size:17px;color:#f3d99a;font-weight:950}
+.pot-split-eligible{font-size:10px;color:#a9c7be;margin-top:2px;line-height:1.5}
+.holdem-seat-result-tag{display:inline-block;font-size:9.5px;font-weight:950;color:#123;background:#8ef0b0;border-radius:5px;padding:1px 7px;margin-top:4px}
+.holdem-seat-result-tag.side{background:#d8b6f0}
+
 .action-grid{display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px}
 @media(min-width:520px){.action-grid{grid-template-columns:1fr 1fr}}
 .action-item{font-size:12.5px;line-height:1.6}
@@ -702,11 +716,107 @@ function buildHoldem(root, ctx){
       </div>
       全員がベット額をそろえる(コールする)かフォールドしたら、そのラウンドは終了。<b>フォールドで自分以外の全員が降りたら、ショーダウンなしでその時点で勝ち</b>になる。
     </div>
+    <div class="ref-head">💰 メインポットとサイドポット（オールインが起きたとき）</div>
+    <div id="sidepot-flow-diagram"></div>
+    <div class="step-controls">
+      <button class="btn" id="sidepot-prev">◀ 前へ</button>
+      <span class="step-progress" id="sidepot-progress"></span>
+      <button class="btn btn-primary" id="sidepot-next">次へ ▶</button>
+    </div>
     <div class="quiz-head">✏️ クイズ：この7枚から作れる最強の役は？</div>
     <div id="quiz-area"></div>
   `;
   mountHoldemFlowStepper(root);
+  mountSidePotStepper(root);
   renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
+}
+
+/* ---- main pot / side pot mini-walkthrough (triggered by an all-in with a short stack) ---- */
+const SIDEPOT_SEATS = [
+  {key:'x', name:'相手X', startStack:40},
+  {key:'y', name:'相手Y', startStack:200},
+  {key:'you', name:'あなた', startStack:200},
+];
+const SIDEPOT_LABEL_CLASS = {allin:'chip-allin', raise:'chip-raise', call:'chip-call'};
+const SIDEPOT_LABEL_TEXT = {allin:'オールイン', raise:'レイズ', call:'コール'};
+const SIDEPOT_EVENTS = [
+  {actionType:'deal', banner:'状況：3人のスタック(残りチップ)を確認', bets:{}, labels:{}, showSplit:false,
+    caption:'相手Xは残り40、相手Yとあなたは残り200のチップを持っている場面を考えてみよう。持っているチップ以上は賭けられない。'},
+  {actionType:'allin', banner:'相手X：オールイン！ 残り40をすべて賭ける', bets:{x:40}, labels:{x:'allin'}, showSplit:false,
+    caption:'オールイン＝残りのチップをすべて賭けること。相手Xは40しか持っていないので、それ以上は賭けようがない。'},
+  {actionType:'raise', banner:'相手Y：レイズ 100（Xの40を超えて引き上げ）', bets:{x:40,y:100}, labels:{x:'allin',y:'raise'}, showSplit:false,
+    caption:'相手Yはまだ160のチップが残っているので、Xのオールイン額(40)を超えて100まで引き上げられる。'},
+  {actionType:'call', banner:'あなた：コール 100', bets:{x:40,y:100,you:100}, labels:{x:'allin',y:'raise',you:'call'}, showSplit:false,
+    caption:'あなたも100を払ってコール。全員のアクションが出そろった。'},
+  {actionType:'split', banner:'ポットが2つに分かれる：メインポット＋サイドポット', bets:{x:40,y:100,you:100}, labels:{x:'allin',y:'raise',you:'call'}, showSplit:true,
+    caption:'相手Xが賭けられたのは40まで。3人分の40×3=120が「メインポット」となり、3人とも獲得資格がある。残りの(100-40)×2=120は、Xを除くYとあなたの2人だけが賭けた分なので「サイドポット」となり、この2人だけに獲得資格がある。'},
+  {actionType:'showdown', banner:'ショーダウン：ポットごとに勝者が決まる', bets:{x:40,y:100,you:100}, labels:{}, showSplit:true, results:{x:{hand:'スリーカード', tag:'main', win:true}, y:{hand:'ツーペア', tag:'side', win:true}, you:{hand:'ワンペア', win:false}},
+    caption:'相手Xの役が一番強くても、獲得できるのは自分が賭けた範囲＝メインポット(120)まで。サイドポット(120)は、Xを除いたYとあなたの勝負で決まり、ここではYが勝ってサイドポットを獲得する。あなたはどちらのポットも取れない。'},
+];
+function renderSidePotDiagram(container, idx){
+  const ev = SIDEPOT_EVENTS[idx];
+  const mainPot = ev.bets.x ? ev.bets.x * 3 : 0;
+  const sideAmt = (ev.bets.y||0) + (ev.bets.you||0) - (ev.bets.x||0)*2;
+  const totalPot = Object.values(ev.bets).reduce((a,b)=>a+b,0);
+
+  const seatsHtml = SIDEPOT_SEATS.map(s=>{
+    const bet = ev.bets[s.key];
+    const label = ev.labels[s.key];
+    const stackLeft = s.startStack - (bet||0);
+    let chipHtml = '';
+    if(label){
+      chipHtml = `<div class="holdem-seat-chip ${SIDEPOT_LABEL_CLASS[label]}">${SIDEPOT_LABEL_TEXT[label]} ${bet}</div>`;
+    }
+    let resultTag = '';
+    if(ev.results){
+      const r = ev.results[s.key];
+      chipHtml = `<div class="holdem-seat-chip">${r.hand}</div>`;
+      if(r.win) resultTag = `<div class="holdem-seat-result-tag ${r.tag==='side'?'side':''}">${r.tag==='side'?'サイドポット獲得':'メインポット獲得'}</div>`;
+    }
+    return `<div class="holdem-seat ${s.key==='you'?'you':''}">
+      <div class="holdem-seat-name">${s.name}</div>
+      <div class="holdem-seat-stack">スタック残り: ${bet!==undefined?stackLeft:s.startStack}</div>
+      ${chipHtml}
+      ${resultTag}
+    </div>`;
+  }).join('');
+
+  const potHtml = ev.showSplit
+    ? `<div class="pot-split-row">
+        <div class="pot-split-box">
+          <div class="pot-split-label">メインポット</div>
+          <div class="pot-split-amount">${mainPot}</div>
+          <div class="pot-split-eligible">相手X・相手Y・あなた<br>3人とも獲得資格あり</div>
+        </div>
+        <div class="pot-split-box side">
+          <div class="pot-split-label">サイドポット</div>
+          <div class="pot-split-amount">${sideAmt}</div>
+          <div class="pot-split-eligible">相手Y・あなたのみ<br>(Xは対象外)</div>
+        </div>
+      </div>`
+    : `<div class="holdem-pot">🪙 ポット: ${totalPot}</div>`;
+
+  container.innerHTML = `
+    <div class="table-felt holdem-diagram">
+      <div class="holdem-flow-banner"><span class="action-pill ${ev.actionType}">${HOLDEM_PILL_LABEL[ev.actionType]}</span>${ev.banner}</div>
+      ${potHtml}
+      <div class="holdem-seats">${seatsHtml}</div>
+      <div class="holdem-caption">${ev.caption}</div>
+    </div>`;
+}
+function mountSidePotStepper(root){
+  let stepIdx = 0;
+  function render(){
+    renderSidePotDiagram(qs('#sidepot-flow-diagram', root), stepIdx);
+    qs('#sidepot-progress', root).textContent = `${stepIdx+1} / ${SIDEPOT_EVENTS.length}`;
+    qs('#sidepot-prev', root).disabled = stepIdx===0;
+  }
+  qs('#sidepot-prev', root).addEventListener('click', ()=>{ if(stepIdx>0){ stepIdx--; render(); } });
+  qs('#sidepot-next', root).addEventListener('click', ()=>{
+    stepIdx = (stepIdx < SIDEPOT_EVENTS.length-1) ? stepIdx+1 : 0;
+    render();
+  });
+  render();
 }
 
 /* ---- illustrative walkthrough example used by the flow stepper above ----
@@ -718,7 +828,7 @@ const HOLDEM_EX_SEATS = [
   {key:'b', name:'相手B (BB)', hole:[[8,'s'],[6,'s']]},
   {key:'you', name:'あなた', hole:[[14,'c'],[13,'s']], isYou:true},
 ];
-const HOLDEM_PILL_LABEL = {deal:'配札', sb:'SB', bb:'BB', raise:'レイズ', call:'コール', bet:'ベット', check:'チェック', fold:'フォールド', board:'公開', showdown:'勝負'};
+const HOLDEM_PILL_LABEL = {deal:'配札', sb:'SB', bb:'BB', raise:'レイズ', call:'コール', bet:'ベット', check:'チェック', fold:'フォールド', board:'公開', showdown:'勝負', allin:'オールイン', split:'内訳'};
 const HOLDEM_EVENTS = [
   {actionType:'deal', phase:'配札', banner:'配札：全員に2枚ずつホールカードが配られる',
     caption:'参加者全員に、他の人には見せない「ホールカード」が2枚ずつ裏向きで配られる。'},
