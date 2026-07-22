@@ -306,6 +306,20 @@ a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
 .range-legend-item{display:flex;align-items:center;gap:4px}
 .range-legend-swatch{width:12px;height:12px;border-radius:2px;display:inline-block}
 
+/* Blocker combo grid */
+.blocker-combo-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:16px}
+.blocker-combo{width:96px;padding:8px;text-align:center;border-radius:8px;border:1.5px solid var(--line);background:#fff}
+.blocker-combo .hand-row{justify-content:center;margin-bottom:6px}
+.blocker-combo .pcard{width:30px;height:42px;padding:2px 3px}
+.blocker-combo .pcard-corner{font-size:8px}
+.blocker-combo .pcard-suit-big{font-size:13px}
+.blocker-combo-label{font-size:10.5px;font-weight:900}
+.blocker-combo.blocked{background:#eee6d3;border-color:#ddd0ad}
+.blocker-combo.blocked .pcard{opacity:.4}
+.blocker-combo.blocked .blocker-combo-label{color:#b8ab8c}
+.blocker-combo.possible{background:var(--ok-bg);border-color:var(--ok-bd)}
+.blocker-combo.possible .blocker-combo-label{color:var(--ok)}
+
 /* Scenario info card (outs / pot odds) */
 .scenario-info{display:flex;flex-wrap:wrap;gap:6px 16px;background:#fbf7ea;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:12.5px;font-weight:800;color:#3a2c08}
 .scenario-info span b{color:var(--gold-dark)}
@@ -1392,6 +1406,71 @@ function buildPotOdds(root, ctx){
 }
 
 /* =====================================================================
+   Stage: インプライドオッズ
+   (required-equity math verified in Node: the two worked examples below
+   genuinely flip fold->call once future winnings are added)
+   ===================================================================== */
+const IMPLIED_SCENARIOS = [
+  {pot:100, bet:50, future:100, equity:30, draw:'フラッシュドロー、フロップ'},
+  {pot:200, bet:100, future:0, equity:25, draw:'ストレートドロー、リバー(もう先がない)'},
+  {pot:60, bet:30, future:150, equity:20, draw:'ガットショット、フロップ'},
+  {pot:100, bet:100, future:50, equity:35, draw:'コンボドロー、ターン'},
+  {pot:90, bet:30, future:180, equity:18, draw:'フラッシュドロー、フロップ(相手のスタックが深い)'},
+];
+function buildImpliedOdds(root, ctx){
+  const quizzes = IMPLIED_SCENARIOS.map(sc=>{
+    const plainRequired = sc.bet/(sc.pot+sc.bet)*100;
+    const impliedRequired = sc.bet/(sc.pot+sc.bet+sc.future)*100;
+    const decision = sc.equity > impliedRequired ? 'コール' : 'フォールド';
+    const visual = `<div class="scenario-info">
+      <span>ポット：<b>${sc.pot}</b></span>
+      <span>相手のベット：<b>${sc.bet}</b></span>
+      <span>役が完成した後に見込める追加獲得額：<b>${sc.future}</b></span>
+      <span>あなたの勝率(エクイティ)：<b>${sc.equity}%</b></span>
+      <span>状況：<b>${sc.draw}</b></span>
+    </div>`;
+    const choices = ['コール','フォールド'];
+    return {
+      visual,
+      q: 'コール？ それともフォールド？',
+      choices,
+      correct: choices.indexOf(decision),
+      explain: `普通のポットオッズなら必要勝率は${sc.bet}/(${sc.pot}+${sc.bet})≈${plainRequired.toFixed(1)}%。`
+        + `でも今後さらに${sc.future}を見込めるなら、必要勝率は${sc.bet}/(${sc.pot}+${sc.bet}+${sc.future})≈${impliedRequired.toFixed(1)}%まで下がる。`
+        + `あなたの勝率は${sc.equity}%なので、`
+        + (decision==='コール' ? 'こちらの方が高く、コールが期待値プラス(+EV)です。' : 'それでも必要勝率に届かないため、フォールドが無難です。'),
+    };
+  });
+  quizzes.push(
+    {q:'インプライドオッズの考え方が特に効果を発揮しやすいのはどのタイミング？',
+      choices:['フロップなど早い段階(まだベットが残っている)','リバー(もうこれ以上ベットが続かない)'], correct:0,
+      explain:'まだ先のストリートがあるほど、役が完成した後に追加でお金を引き出せるチャンスが多い。リバーは最後のカードなので、追加で見込める金額は基本的に0になり、普通のポットオッズと同じになる。'},
+    {q:'役が完成した後に見込める「追加獲得額」の見積もりが大きいほど、必要勝率はどうなる？',
+      choices:['下がる(コールしやすくなる)','上がる(コールしにくくなる)','変わらない'], correct:0,
+      explain:'追加で見込める金額が大きいほど、「今すぐの見返り」が小さくても将来の見返りで元が取れるので、コールに必要な勝率のラインは下がる。'},
+  );
+  root.innerHTML = `
+    <div class="chen-box">
+      <b>ポットオッズだけでは見落とすもの</b><br>
+      前のステージの「必要勝率」は、<b>今のポットと今のベット</b>だけを見た計算だった。
+      でも実際は、役が完成した後にもう1回・2回とベッティングラウンドが残っていることが多い。
+      相手が強い手を持っていれば、そこでさらにお金を払ってくれる(＝あなたが追加で獲得できる)かもしれない。
+      この「将来の見込み」まで加味した考え方が<b>インプライドオッズ</b>。
+    </div>
+    <div class="chen-box">
+      <b>公式は、必要勝率の式に「見込める追加獲得額」を足すだけ</b><br>
+      必要勝率(インプライドオッズ版) = ベット額 ÷ (ポット + ベット額 + 見込める追加獲得額) × 100<br>
+      例：ポット100・ベット50 → 普通の必要勝率は 50/(100+50)≈<b>33%</b>。もし完成後にさらに100を見込めるなら、
+      50/(100+50+100)≈<b>20%</b>まで下がる。勝率30%のドローなら、普通のポットオッズでは<b>フォールド</b>だったのに、
+      インプライドオッズで考えると<b>コール</b>に変わる。
+    </div>
+    <div class="quiz-head">✏️ クイズ：インプライドオッズで判断しよう</div>
+    <div id="quiz-area"></div>
+  `;
+  renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
+}
+
+/* =====================================================================
    Stage: レンジ思考とハンドリーディング
    (range grid derived from the same simplified Chen formula used in
    the starting-hand stage — thresholds verified in Node: score>=7 covers
@@ -1449,6 +1528,67 @@ function buildRange(root, ctx){
       相手の行動(どのポジションから参加してきたか、ベットしたか)を積み重ねるほど、このレンジはどんどん絞り込まれていく。
     </div>
     <div class="quiz-head">✏️ クイズ：レンジ思考を確認しよう</div>
+    <div id="quiz-area"></div>
+  `;
+  renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
+}
+
+/* =====================================================================
+   Stage: ブロッカー
+   (combo counts verified in Node: C(4,2)=6 total AA combos, C(3,2)=3
+   remain once one ace is removed from the deck)
+   ===================================================================== */
+const AA_COMBOS = [
+  {cards:[[14,'s'],[14,'h']], blocked:true},
+  {cards:[[14,'s'],[14,'d']], blocked:true},
+  {cards:[[14,'s'],[14,'c']], blocked:true},
+  {cards:[[14,'h'],[14,'d']], blocked:false},
+  {cards:[[14,'h'],[14,'c']], blocked:false},
+  {cards:[[14,'d'],[14,'c']], blocked:false},
+];
+function buildBlockers(root, ctx){
+  const combosHtml = AA_COMBOS.map(c=>`
+    <div class="blocker-combo ${c.blocked?'blocked':'possible'}">
+      <div class="hand-row">${c.cards.map(([r,s])=>cardHtml(mkCard(r,s))).join('')}</div>
+      <div class="blocker-combo-label">${c.blocked?'✕ ブロック済み':'○ まだ可能'}</div>
+    </div>`).join('');
+
+  const quizzes = [
+    {q:'誰も何も持っていない状態で、相手がAA(エースのペア)を持っている組み合わせは通常何通り？',
+      choices:['6通り','4通り','3通り','2通り'], correct:0,
+      explain:'デッキには4枚のエースがある。その中から2枚を選ぶ組み合わせは6通り(A♠A♥・A♠A♦・A♠A♣・A♥A♦・A♥A♣・A♦A♣)。'},
+    {q:'あなたがA♠(スペードのエース)を持っているとき、相手がAAを持っている組み合わせは何通りに減る？',
+      choices:['6通りのまま','4通り','3通り','0通り(絶対に持てない)'], correct:2,
+      explain:'A♠を含む3通り(A♠A♥・A♠A♦・A♠A♣)はあなたが握っているので相手には作れない。残るのは、あなたが持っていない3枚のエースだけで作れる3通り。可能性はちょうど半分に減る。'},
+    {q:'このように、自分の手札が「相手の持ちうる組み合わせを減らす」効果を持つカードを何と呼ぶ？',
+      choices:['ブロッカー','キッカー','コネクター','ブラインド'], correct:0,
+      explain:'相手の強い手の組み合わせを「ブロック(妨害)」しているカード、という意味で「ブロッカー」と呼ぶ。'},
+    {q:'ブロッカーを持っていてブラフを打つとき、そのブラフはどうなりやすい？',
+      choices:['相手の強い手が減っている分、成功しやすくなる','相手の強い手が増えるので失敗しやすくなる','特に変わらない'], correct:0,
+      explain:'相手が強い手(あなたがブロックしているハンド)を持っている可能性がもともと低いので、相手はコールしにくく、コールしてきても弱い手であることが多い。'},
+    {q:'前のステージで学んだ「レンジ」の考え方と、ブロッカーの関係は？',
+      choices:['ブロッカーは、相手のレンジの中から特定の組み合わせを除外する材料になる','ブロッカーとレンジは無関係','ブロッカーはレンジを常に2倍に広げる'], correct:0,
+      explain:'レンジ(あり得る手の分布)を考えるとき、自分の手札は「相手がその組み合わせを持てるかどうか」にも影響する。ブロッカーは、レンジをさらに絞り込むための材料になる。'},
+    {q:'そもそも、なぜ自分の手札が相手の組み合わせに影響するのか？',
+      choices:['自分の手札も、52枚のデッキのうちの2枚を占有しているから','ポーカーのルールで決まっているから(理由はない)','相手に手札が見えているから'], correct:0,
+      explain:'デッキは52枚しかない。自分がその2枚を持っている以上、相手が同じカードを持つことは絶対にできない。この「カードの取り合い」の効果が、ブロッカーの正体。'},
+  ];
+
+  root.innerHTML = `
+    <div class="chen-box">
+      <b>自分の手札には、もう1つの役割がある</b><br>
+      これまでは自分の手札を「役を作る材料」として見てきた。でも実はもう1つ、
+      「相手が持てるカードを減らす」という役割もある。デッキは52枚しかないので、
+      自分がすでに持っているカードを、相手が同時に持つことは絶対にできない。
+    </div>
+    <div class="ref-head">🃏 具体例：あなたがA♠を持っているとき</div>
+    <div class="blocker-combo-grid">${combosHtml}</div>
+    <div class="chen-box">
+      6通りあったはずの相手のAAの組み合わせのうち、A♠を含む3通りはもう作れない。
+      残っているのは3通りだけ——つまり<b>相手がAAを持っている可能性は、もとの半分に減った</b>。
+      このように相手の組み合わせを減らすカードを<b>ブロッカー</b>と呼ぶ。
+    </div>
+    <div class="quiz-head">✏️ クイズ：ブロッカーの考え方を確認しよう</div>
     <div id="quiz-area"></div>
   `;
   renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
@@ -1526,6 +1666,69 @@ function buildBetSizing(root, ctx){
       小さいベットほど、少しの回数フォールドしてもらえるだけで割に合う。大きいベットほど、たくさんフォールドしてもらわないと割に合わない——その代わり、フォールドしてもらえた時に獲得できる金額も大きくなる。
     </div>
     <div class="quiz-head">✏️ クイズ：ベットサイジングを計算してみよう</div>
+    <div id="quiz-area"></div>
+  `;
+  renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
+}
+
+/* =====================================================================
+   Stage: ボードテクスチャーとCベット戦略
+   (dry/wet classification verified in Node against a simple rule:
+   wet = flush draw possible OR ranks within a 4-span; matches intent
+   for all 6 example boards below)
+   ===================================================================== */
+const BOARD_EXAMPLES = [
+  {cards:[[13,'s'],[7,'d'],[2,'c']], texture:'dry', why:'3枚とも別々のスート(フラッシュドローなし)で、数字もバラバラ(ストレートも遠い)。'},
+  {cards:[[11,'s'],[10,'s'],[9,'h']], texture:'wet', why:'スペードが2枚(フラッシュドロー)、数字も連続(ストレートドロー多数)。'},
+  {cards:[[14,'h'],[8,'d'],[3,'c']], texture:'dry', why:'3枚とも別々のスートで、数字も大きく離れている。'},
+  {cards:[[9,'h'],[8,'h'],[7,'c']], texture:'wet', why:'ハートが2枚(フラッシュドロー)、数字も連続(ストレートドロー多数)。'},
+  {cards:[[12,'c'],[9,'s'],[4,'h']], texture:'dry', why:'3枚とも別々のスートで、数字もバラバラ。'},
+  {cards:[[12,'d'],[11,'d'],[4,'s']], texture:'wet', why:'ダイヤが2枚(フラッシュドロー)、Q-Jが連続(ストレートドローの芽もある)。'},
+];
+function buildBoardTexture(root, ctx){
+  const quizzes = BOARD_EXAMPLES.map(b=>{
+    const visual = `<div class="hand-row">${b.cards.map(([r,s])=>cardHtml(mkCard(r,s))).join('')}</div>`;
+    const choices = ['乾いている(ドライ)','濡れている(ウェット)'];
+    const correctIdx = b.texture==='dry' ? 0 : 1;
+    return {
+      visual,
+      q: 'この盤面(フロップ)は、乾いている？ それとも濡れている？',
+      choices,
+      correct: correctIdx,
+      explain: `${b.why}${b.texture==='dry' ? '役やドローがほとんど絡まないので「ドライ」。' : '役やドローがたくさん絡むので「ウェット」。'}`,
+    };
+  });
+  quizzes.push(
+    {q:'乾いた盤面(ドライ)では、プリフロップでレイズした人はどうするのが基本？',
+      choices:['高頻度・小さめのサイズでCベットしてよい','ほとんどベットせず様子見するべき','必ずポット以上ベットするべき'], correct:0,
+      explain:'ドライな盤面は相手のレンジにもあまり噛み合わない(強くなりにくい)ので、少額のベットでも相手を降ろしやすい。回数多く、小さめのサイズでCベットするのが基本戦略。'},
+    {q:'濡れた盤面(ウェット)でベットするとき、サイズはどうするのが基本？',
+      choices:['大きめにする(ドローに正しい対価を払わせるため)','必ず小さくする','ベットしてはいけない'], correct:0,
+      explain:'ウェットな盤面は相手にもドロー(役の完成前の手)が多く絡む。小さすぎるベットだとドローを安くコールされてしまうので、大きめのサイズで「見合わない賭け」を強いる必要がある。'},
+    {q:'そもそも、なぜプリフロップのレイザーには「レンジ有利」があると言えるのか？',
+      choices:['レイズした時点で、強いハンドに絞られたレンジになっているから','レイズした人は常に一番強い手を持っているから','ポジションが必ず良いから'], correct:0,
+      explain:'前のステージで学んだ通り、レイズという行動そのものが「このレンジ表の中の、強い方のハンドです」という宣言になっている。だからこそ、相手のコールする側のレンジより平均して強く、盤面によってはCベットで押し切りやすい。'},
+  );
+  root.innerHTML = `
+    <div class="chen-box">
+      <b>盤面にも「乾いている」「濡れている」がある</b><br>
+      フロップの3枚が、役やドローにどれだけ絡みやすいかで、盤面の性質が変わる。<br>
+      <b>乾いている(ドライ)</b>：3枚が別々のスート(フラッシュドローなし)で、数字も離れている(ストレートドローも遠い)。誰の手にもあまり絡まない。<br>
+      <b>濡れている(ウェット)</b>：同じスートが2枚以上(フラッシュドロー)や、数字が連続(ストレートドロー)がある。いろいろな手に絡みやすい。
+    </div>
+    <div class="vs-row">
+      <div class="hand-block"><div class="hand-label">ドライな例</div><div class="hand-row">${[[13,'s'],[7,'d'],[2,'c']].map(([r,s])=>cardHtml(mkCard(r,s))).join('')}</div></div>
+      <div class="vs-divider">VS</div>
+      <div class="hand-block"><div class="hand-label">ウェットな例</div><div class="hand-row">${[[11,'s'],[10,'s'],[9,'h']].map(([r,s])=>cardHtml(mkCard(r,s))).join('')}</div></div>
+    </div>
+    <div class="chen-box">
+      <b>盤面の質でCベット(継続ベット)の判断が変わる</b><br>
+      プリフロップでレイズした人は、レンジ思考のステージで学んだ通り「強いハンドに絞られたレンジ」を持っている。
+      <b>ドライな盤面</b>ではこの差がそのまま出やすいので、高頻度・小さめのサイズでベット(Cベット)を続けやすい。
+      <b>ウェットな盤面</b>では相手のレンジにもドローが絡みやすくなるので、ベットの回数を絞ったり、
+      サイズを大きくしてドローに正しい対価を払わせたりする必要がある。
+    </div>
+    <div class="quiz-head">✏️ クイズ：盤面を読んでみよう</div>
     <div id="quiz-area"></div>
   `;
   renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
@@ -1694,6 +1897,16 @@ const STAGES = [
     build: buildPotOdds,
   },
   {
+    key:'impliedodds', title:'インプライドオッズ', sub:'将来の見込みまで加味してコール判断する',
+    missionText:'「今のポットオッズ」だけでなく「将来の見込み」まで加味してコール判断しよう。7問正解でクリア。',
+    dialogue:[
+      {who:'coach', text:'ポットオッズは便利だけど、実は「今のポット」しか見ていない。もう一歩進んだ考え方を紹介しよう。'},
+      {who:'stu', text:'今のポットだけじゃダメなんですか？'},
+      {who:'coach', text:'ドローが完成した後も、まだベッティングラウンドが残っていることが多い。そこで相手からさらに引き出せる見込み額まで含めて考えるのが「インプライドオッズ」だ。'},
+    ],
+    build: buildImpliedOdds,
+  },
+  {
     key:'range', title:'レンジ思考とハンドリーディング', sub:'相手の手を「分布」で考える',
     missionText:'ポジションによってレンジ(参加するハンドの範囲)が変わることを確認し、5問正解でクリアしよう。',
     dialogue:[
@@ -1702,6 +1915,16 @@ const STAGES = [
       {who:'coach', text:'1つに決め打ちはしない。「ポジションやここまでの行動から考えて、あり得る手の範囲はこのあたりだ」と分布で捉えるんだ。ポジションが良いほど、その範囲は広くなる。'},
     ],
     build: buildRange,
+  },
+  {
+    key:'blockers', title:'ブロッカー', sub:'自分の手札が相手の可能性を減らす',
+    missionText:'具体例で「組み合わせが減る」感覚をつかんでから、6問正解でクリアしよう。',
+    dialogue:[
+      {who:'coach', text:'レンジの考え方に、もう1つ武器を追加しよう。実は自分の手札そのものが、相手のレンジを絞り込むヒントになるんだ。'},
+      {who:'stu', text:'自分の手札で、相手のことが分かるんですか？'},
+      {who:'coach', text:'ああ。デッキは52枚しかない。自分がすでに2枚持っていたら、相手が同じカードを持つことは絶対にできない——この仕組みを「ブロッカー」と呼ぶ。具体例で見てみよう。'},
+    ],
+    build: buildBlockers,
   },
   {
     key:'betsizing', title:'ベットサイジングとブラフの数学', sub:'掛け金の大きさにも計算式がある',
@@ -1714,6 +1937,16 @@ const STAGES = [
       {who:'coach', text:'そう。下の例を1つずつ読んでみて。最後にちゃんと式にまとめるから安心して。'},
     ],
     build: buildBetSizing,
+  },
+  {
+    key:'boardtexture', title:'ボードテクスチャーとCベット戦略', sub:'フロップの質でベット判断を変える',
+    missionText:'盤面が「乾いている」か「濡れている」かを見極めて、9問正解でクリアしよう。',
+    dialogue:[
+      {who:'coach', text:'最後の仕上げに、ここまでの知識を1つにまとめる考え方を紹介しよう。「盤面(フロップ)の質」だ。'},
+      {who:'stu', text:'盤面にも良し悪しがあるんですか？'},
+      {who:'coach', text:'ドローが絡みやすい「濡れた」盤面と、あまり絡まない「乾いた」盤面がある。レンジ・ベットサイジング・ブロッカー、ここまで学んだことが全部ここに関わってくるんだ。'},
+    ],
+    build: buildBoardTexture,
   },
   {
     key:'final', title:'総合チャレンジ：CPU対戦', sub:'学んだ知識を武器に3ハンド勝負',
@@ -1842,7 +2075,7 @@ function showEnding(){
   main.innerHTML = `
     <div class="ending">
       <h2>🃏 POKER QUEST 制覇！</h2>
-      <p>役の基礎からハンド比較、テキサスホールデムの遊び方、ポジション、スターティングハンド評価、アウツとオッズ、ポットオッズ、レンジ思考、ベットサイジングの数学まで——ポーカー上達の土台を一通り学んだね。</p>
+      <p>役の基礎からハンド比較、テキサスホールデムの遊び方、ポジション、スターティングハンド評価、アウツとオッズ、ポットオッズ、インプライドオッズ、レンジ思考、ブロッカー、ベットサイジングの数学、ボードテクスチャーまで——ポーカー上達の土台を一通り学んだね。</p>
       <div class="ending-list">
         ✅ 役の強さは ハイカード→ワンペア→ツーペア→スリーカード→ストレート→フラッシュ→フルハウス→フォーカード→ストレートフラッシュ→ロイヤルフラッシュ の順<br>
         ✅ 同じ役同士は「キッカー」など細かい数字の大小で勝敗が決まる<br>
@@ -1852,8 +2085,11 @@ function showEnding(){
         ✅ スターティングハンドの強さは、高さ・ペア・スーテッド・数字の近さで簡易的に点数化できる<br>
         ✅ アウツ×4(残り2枚)、アウツ×2(残り1枚)で完成確率を概算できる(4-2ルール)<br>
         ✅ 必要勝率(ポットオッズ) &lt; 自分の勝率(エクイティ) ならコール、逆ならフォールドが基本<br>
+        ✅ インプライドオッズ：将来さらに引き出せる見込み額まで加味すると、必要勝率はもっと下がる<br>
         ✅ レンジ(相手が持ちうる手の分布)で考えると、1つの決め打ちより判断の精度が上がる<br>
-        ✅ ベット額÷(ポット+ベット額)は、コール側の必要勝率とベット側のブラフ損益分岐フォールド率、両方に使える式
+        ✅ ブロッカー：自分の手札は、相手が持てる組み合わせも減らしている<br>
+        ✅ ベット額÷(ポット+ベット額)は、コール側の必要勝率とベット側のブラフ損益分岐フォールド率、両方に使える式<br>
+        ✅ 盤面が乾いている(ドライ)か濡れている(ウェット)かで、Cベットの頻度とサイズを変える
       </div>
       <button class="btn btn-primary" id="btn-replay">↺ はじめから学びなおす</button>
     </div>
