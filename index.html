@@ -269,6 +269,15 @@ a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
 .chen-box{background:linear-gradient(180deg,#fff8e6,#fdefc9);border:1px solid #e3c877;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12.5px;line-height:1.9;color:#3a2c08}
 .chen-box b{color:#8a6614}
 
+/* Bet sizing stage: concrete 3-trial worked example */
+.bluff-trials{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.bluff-trial{display:grid;grid-template-columns:1fr 70px;grid-template-areas:"label result" "desc desc";gap:2px 12px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.bluff-trial-label{grid-area:label;font-size:12.5px;font-weight:900;color:#1c2f2b}
+.bluff-trial-result{grid-area:result;font-size:20px;font-weight:950;text-align:right}
+.bluff-trial-result.plus{color:var(--ok)}
+.bluff-trial-result.minus{color:var(--ng)}
+.bluff-trial-desc{grid-area:desc;font-size:11.5px;color:var(--muted);line-height:1.5}
+
 /* Position stage: reference table + "who is acting" highlight */
 .pos-table{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
 .pos-row{display:grid;grid-template-columns:64px minmax(0,1fr) minmax(0,1fr) 90px;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 12px}
@@ -1451,11 +1460,11 @@ function buildRange(root, ctx){
    bettor's side — verified numerically in Node before writing this)
    ===================================================================== */
 const BETSIZE_SCENARIOS = [
-  {pot:100, bet:33, label:'1/3ポットベット', pct:25},
-  {pot:100, bet:50, label:'1/2ポットベット', pct:33},
-  {pot:100, bet:100, label:'ポットベット(等倍)', pct:50},
-  {pot:100, bet:200, label:'オーバーベット(2倍ポット)', pct:67},
-  {pot:300, bet:75, label:'小さめのベット(1/4ポット)', pct:20},
+  {pot:100, bet:33, label:'1/3ポットベット', pct:25, frac:'4回に1回'},
+  {pot:100, bet:50, label:'1/2ポットベット', pct:33, frac:'3回に1回'},
+  {pot:100, bet:100, label:'ポットベット(等倍)', pct:50, frac:'2回に1回'},
+  {pot:100, bet:200, label:'オーバーベット(2倍ポット)', pct:67, frac:'3回のうち2回'},
+  {pot:300, bet:75, label:'小さめのベット(1/4ポット)', pct:20, frac:'5回に1回'},
 ];
 function buildBetSizing(root, ctx){
   const quizzes = BETSIZE_SCENARIOS.map(sc=>{
@@ -1468,28 +1477,53 @@ function buildBetSizing(root, ctx){
     const choicesArr = numericChoices(sc.pct, 15, '%').map(s=>'約'+s);
     return {
       visual,
-      q: 'このベットが損益分岐する(得になる)ために、相手が最低どれくらいの割合でフォールドしてくれる必要がある？',
+      q: 'このベットが損得なし(損益分岐)になるために、相手が最低どれくらいの割合でフォールドしてくれる必要がある？',
       choices: choicesArr,
       correct: choicesArr.indexOf('約'+sc.pct+'%'),
-      explain: `損益分岐フォールド率 = ${sc.bet}/(${sc.pot}+${sc.bet}) ≈ ${exact.toFixed(1)}%(概算${sc.pct}%)。これはポットオッズの「必要勝率」と全く同じ式を、ベットする側から見た形です。`,
+      explain: `${sc.bet} ÷ (${sc.pot}+${sc.bet}) ≈ ${exact.toFixed(1)}%(概算${sc.pct}%)。下の例と同じ考え方で言うと、「${sc.frac}」相手が降りてくれれば、損得なしのラインを超えます。`,
     };
   });
   quizzes.push(
-    {q:'ベットを大きくする(ポットに対する割合を上げる)ほど、成立させるために自分が混ぜるべきブラフの比率は？',
-      choices:['増える(ブラフを増やさないと読まれる)','減る','変わらない'], correct:0,
-      explain:'大きいベットは相手に高いフォールド率を要求する分、自分のベットレンジの中のブラフ比率も上げてバランスを取らないと、「大きいベット=バリューハンドだけ」と読まれて搾取されてしまう。'},
-    {q:'相手にとって「コールしてもフォールドしても損得が同じ」になるよう、自分のベットに含めるべき配分は？',
-      choices:['バリューハンドだけ', 'バリューハンド：ブラフハンド ＝ 損益分岐フォールド率に応じた比率', 'ブラフだけ'], correct:1,
-      explain:'損益分岐フォールド率をそのまま「バリュー：ブラフの比率」に当てはめると、相手はどちらを選んでも損得が同じになり(indifferent)、搾取されにくい「最適ブラフ頻度」に近づく。'},
+    {q:'ベットを大きくする(ポットに対する割合を上げる)ほど、必要になる相手のフォールド率はどうなる？',
+      choices:['上がる(相手に多く降りてもらわないと割に合わない)','下がる','変わらない'], correct:0,
+      explain:'ベットが大きいほど、外れたときの損も大きい。だから「相手がこれくらいの割合で降りてくれないと割に合わない」というラインも上がる。'},
+    {q:'もし自分が「強い手のときしかベットしない」人だとバレたら、相手はどうしてくる？',
+      choices:['どんどんコールしてくる(強い手にしか会わないなら、ベットされた時だけ降りればいいので怖くない)','逆に降りやすくなる','特に変わらない'], correct:0,
+      explain:'実は"読まれにくさ"も大事。強い手の時「だけ」ベットしていると、相手は「ベットされたら降りて、されなければ様子見」で簡単に対処できてしまい、ブラフの機能が働かなくなる。だからこそ、たまにブラフも混ぜて「ベットされても本当に強いかどうか分からない」状態を保つ必要がある。'},
   );
   root.innerHTML = `
     <div class="chen-box">
-      <b>ベットサイズの数学</b><br>
-      損益分岐フォールド率 = ベット額 ÷ (ポット + ベット額) × 100<br>
-      → これは、コール側が使ってきた「必要勝率(ポットオッズ)」と<b>まったく同じ式</b>。ベットする側から見ると
-      「相手がこの割合以上フォールドしてくれれば、ブラフは得になる」という意味になる。<br>
-      さらにこの比率を、自分のベットレンジの中の<b>バリューハンド：ブラフハンドの割合</b>に当てはめると、
-      相手にとって損得なしの絶妙なバランス(＝読まれても搾取されない「最適ブラフ頻度」)に近づく。
+      <b>まず具体例で見てみよう：ポット100の場面で、50をブラフでベットしたら？</b><br>
+      あなたは勝てる見込みが薄い手だったが、思い切って50をベットした(いわゆる「ブラフ」)。相手の反応は「フォールド」か「コール」のどちらか。
+    </div>
+    <div class="bluff-trials">
+      <div class="bluff-trial">
+        <div class="bluff-trial-label">1回目：相手がフォールド</div>
+        <div class="bluff-trial-result plus">+100</div>
+        <div class="bluff-trial-desc">相手が降りたので、すでにあったポット100をそのまま獲得できる。</div>
+      </div>
+      <div class="bluff-trial">
+        <div class="bluff-trial-label">2回目：相手がコール</div>
+        <div class="bluff-trial-result minus">−50</div>
+        <div class="bluff-trial-desc">ブラフを見破られて負け。ベットした50を失う。</div>
+      </div>
+      <div class="bluff-trial">
+        <div class="bluff-trial-label">3回目：相手がコール</div>
+        <div class="bluff-trial-result minus">−50</div>
+        <div class="bluff-trial-desc">また見破られて負け。またベットした50を失う。</div>
+      </div>
+    </div>
+    <div class="chen-box">
+      <b>3回のうち1回だけ、相手が降りてくれれば……</b><br>
+      +100 − 50 − 50 = <b>0</b>。ちょうど損得なし(損益分岐)になる！<br>
+      つまりこのベットは、<b>「3回に1回」相手が降りてくれるだけで十分</b>、それより多く降りてくれるなら、むしろ得になる。<br>
+      この「3回に1回」を計算で求める式が：<br>
+      <b>ベット額 ÷ (ポット + ベット額) × 100</b> = 50 ÷ (100+50) × 100 ≈ <b>33%</b>(≒3回に1回)<br>
+      実はこれ、前のステージで習った「ポットオッズ(コールに必要な勝率)」と<b>まったく同じ式</b>。あちらは「コールする側」、こちらは「ベットする側」から見ただけの違い。
+    </div>
+    <div class="chen-box">
+      <b>ベットサイズを変えると、必要なフォールド率も変わる</b><br>
+      小さいベットほど、少しの回数フォールドしてもらえるだけで割に合う。大きいベットほど、たくさんフォールドしてもらわないと割に合わない——その代わり、フォールドしてもらえた時に獲得できる金額も大きくなる。
     </div>
     <div class="quiz-head">✏️ クイズ：ベットサイジングを計算してみよう</div>
     <div id="quiz-area"></div>
@@ -1671,11 +1705,13 @@ const STAGES = [
   },
   {
     key:'betsizing', title:'ベットサイジングとブラフの数学', sub:'掛け金の大きさにも計算式がある',
-    missionText:'ベットサイズごとの「損益分岐フォールド率」を計算しよう。7問正解でクリア。',
+    missionText:'具体例で「損得なしのライン」を体感してから、7問正解でクリアしよう。',
     dialogue:[
-      {who:'coach', text:'最後に、「いくら賭けるか」自体にも数学があることを紹介しよう。ポットオッズの式を、今度はベットする側から見直してみる。'},
+      {who:'coach', text:'最後に、「いくら賭けるか」自体にも数学があることを紹介しよう。'},
       {who:'stu', text:'コールするかどうかの式は習いましたけど、ベット額を決める式もあるんですか？'},
-      {who:'coach', text:'実は同じ式なんだ。ベット額÷(ポット+ベット額)——これがそのまま「ブラフが成立する最低フォールド率」になる。ベットが大きいほど、自分もブラフの比率を上げないとバランスが崩れるんだ。'},
+      {who:'coach', text:'ある。でも先に数式を出すと分かりにくいから、まずは具体的な数字で見てみよう。「ブラフしたけど何回かに1回は見破られる」という状況を、3回繰り返した場合で考えてみるんだ。'},
+      {who:'stu', text:'なるほど、まず数を数えてみるんですね。'},
+      {who:'coach', text:'そう。下の例を1つずつ読んでみて。最後にちゃんと式にまとめるから安心して。'},
     ],
     build: buildBetSizing,
   },
