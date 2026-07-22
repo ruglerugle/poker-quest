@@ -324,6 +324,18 @@ a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
 .book-recommend-label{display:inline-block;font-size:10px;font-weight:900;color:#cfe4de;border:1px solid #cfe4de;border-radius:4px;padding:0 5px;margin:0 0 6px}
 .book-recommend-lead{font-size:12px;color:#cfe4de;margin:0 0 4px;font-weight:700}
 #book-recommend a{font-size:13px;color:#f3c47a;font-weight:900;text-decoration:underline}
+
+/* Glossary: clickable jargon terms + popover definition */
+.glossary-term{border-bottom:1.5px dashed currentColor;opacity:.92;cursor:help;touch-action:manipulation}
+.glossary-term:hover,.glossary-term:active{background:rgba(217,164,65,.22);border-radius:2px}
+#glossary-tooltip{position:fixed;z-index:300;max-width:280px;background:#1c2f2b;color:#fff;border:1px solid var(--gold);
+  border-radius:8px;padding:10px 30px 10px 12px;font-size:12.5px;line-height:1.6;box-shadow:0 8px 24px rgba(0,0,0,.45);
+  display:none}
+#glossary-tooltip.show{display:block}
+#glossary-tooltip .gt-term{font-weight:950;color:var(--gold);margin-bottom:4px;font-size:12.5px}
+#glossary-tooltip .gt-def{color:#eaf6f2}
+#glossary-tooltip .gt-close{position:absolute;top:4px;right:6px;width:22px;height:22px;cursor:pointer;color:#cfe4de;
+  font-size:14px;background:none;border:none;font-family:inherit}
 </style>
 </head>
 <body>
@@ -371,6 +383,116 @@ function randInt(min,max){ return min + Math.floor(Math.random()*(max-min+1)); }
 function pick(arr){ return arr[randInt(0,arr.length-1)]; }
 function shuffleArr(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=randInt(0,i); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function sampleN(arr,n){ return shuffleArr(arr).slice(0,n); }
+
+/* =====================================================================
+   glossary: tap a jargon term anywhere in the page to see its definition.
+   linkGlossaryIn() walks the rendered text of a container and wraps any
+   matching term in a clickable span; a single delegated click listener
+   (set up once at boot) shows a positioned tooltip. Re-running
+   linkGlossaryIn on already-linked content is a no-op (it skips text
+   nodes whose ancestor is already a .glossary-term), so callers can
+   call it freely after every re-render without worrying about double-wrapping.
+   ===================================================================== */
+const GLOSSARY = {
+  'ホールカード': '自分だけに配られる、他のプレイヤーには見せない2枚の手札。',
+  'コミュニティカード': 'テーブル中央に公開される、全員で共有するカード(フロップ3枚+ターン1枚+リバー1枚の計5枚)。',
+  'フロップ': '最初に公開される3枚のコミュニティカード。ここから2回目のベッティングラウンドが始まる。',
+  'ターン': 'フロップの次に公開される4枚目のコミュニティカード。',
+  'リバー': '最後に公開される5枚目のコミュニティカード。',
+  'ショーダウン': '最後まで残ったプレイヤー同士でカードを見せ合い、役の強さを比べること。',
+  'キッカー': '役の直接の構成には使わない、残りのカード。同じ役同士の勝敗を決める材料になる。',
+  'スーテッド': '2枚の手札が同じスート(マーク)であること。役や強さの計算にプラスに働く。',
+  'コネクター': '2枚の手札の数字が連続していること(例：9と8)。ストレートを狙いやすい。',
+  'ブラインド': 'プリフロップで強制的に賭けさせられる少額のベット。',
+  'スモールブラインド': 'ブラインドのうち少ない方の額。ボタンの次に座る人が払う。',
+  'ビッグブラインド': 'ブラインドのうち多い方の額。スモールブラインドの次に座る人が払う。',
+  'オールイン': '残っているチップをすべて賭けること。それ以上は賭けようがない。',
+  'メインポット': 'オールインが起きたとき、参加者全員が獲得資格を持つポットの部分。',
+  'サイドポット': 'オールインした人より多く賭けた人たちだけが獲得資格を持つ、追加のポット。',
+  'ポジション': 'テーブル上の座席の位置。行動する順番と、得られる情報量を左右する。',
+  'ボタン': 'ディーラー役を示す印。この位置にいる人は、フロップ以降は常に最後に行動できる。',
+  'アウツ': '今の手札を、より強い役に完成させてくれる残りのカードの枚数。',
+  'ドロー': '役があと少しで完成しそうな、未完成の状態。',
+  'ポットオッズ': 'コールに必要な金額と、獲得できるポットの大きさの比率から計算する「必要勝率」。',
+  'エクイティ': '今の時点での、自分が最終的に勝てる見込みの確率。',
+  '期待値': '長期的に見たときの、平均的な損得の見込み。プラスなら得(+EV)、マイナスなら損(-EV)。',
+  'レンジ': '相手が持っている可能性のある手札の範囲(分布)。1つの手に決め打ちしない考え方。',
+  'ハンドリーディング': '相手の行動から、持っている手札のレンジを読み取る技術。',
+  'ブラフ': '弱い手なのに強い手のふりをして、相手を降ろさせるための賭け方。',
+};
+const GLOSSARY_REGEX = new RegExp('(' + Object.keys(GLOSSARY).sort((a,b)=>b.length-a.length).map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|') + ')');
+function linkGlossaryIn(root){
+  if(!root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const targets = [];
+  let node;
+  while((node = walker.nextNode())){
+    if(!node.nodeValue || !GLOSSARY_REGEX.test(node.nodeValue)) continue;
+    let el = node.parentElement, skip = false;
+    while(el && el!==root){
+      if(el.tagName==='BUTTON' || el.classList.contains('glossary-term') || el.classList.contains('choice-btn')){ skip = true; break; }
+      el = el.parentElement;
+    }
+    if(!skip) targets.push(node);
+  }
+  targets.forEach(textNode=>{
+    const parts = textNode.nodeValue.split(GLOSSARY_REGEX);
+    if(parts.length<=1) return;
+    // Wrap everything in a single inline <span> (not a bare DocumentFragment) so
+    // that replacing the one original text node still leaves exactly one child
+    // in the parent — this matters because several containers in this app use
+    // display:flex (e.g. .dialog-bubble), where multiple top-level sibling
+    // nodes would each become their own flex item and stack on separate lines.
+    const wrap = document.createElement('span');
+    parts.forEach((part,i)=>{
+      if(!part) return;
+      if(i%2===1){
+        const span = document.createElement('span');
+        span.className = 'glossary-term';
+        span.textContent = part;
+        span.dataset.term = part;
+        wrap.appendChild(span);
+      } else {
+        wrap.appendChild(document.createTextNode(part));
+      }
+    });
+    textNode.parentNode.replaceChild(wrap, textNode);
+  });
+}
+function showGlossaryTooltip(span){
+  const def = GLOSSARY[span.dataset.term];
+  if(!def) return;
+  let tip = document.getElementById('glossary-tooltip');
+  if(!tip){
+    tip = document.createElement('div');
+    tip.id = 'glossary-tooltip';
+    tip.innerHTML = '<button class="gt-close" aria-label="閉じる">✕</button><div class="gt-term"></div><div class="gt-def"></div>';
+    document.body.appendChild(tip);
+    tip.querySelector('.gt-close').addEventListener('click', (e)=>{ e.stopPropagation(); hideGlossaryTooltip(); });
+  }
+  tip.querySelector('.gt-term').textContent = span.dataset.term;
+  tip.querySelector('.gt-def').textContent = def;
+  tip.classList.remove('show'); tip.style.visibility = 'hidden'; tip.classList.add('show');
+  const rect = span.getBoundingClientRect();
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = rect.left, top = rect.bottom + 6;
+  if(left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
+  if(left < 8) left = 8;
+  if(top + th > window.innerHeight - 8) top = rect.top - th - 6;
+  if(top < 8) top = 8;
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+  tip.style.visibility = '';
+}
+function hideGlossaryTooltip(){
+  const tip = document.getElementById('glossary-tooltip');
+  if(tip) tip.classList.remove('show');
+}
+document.addEventListener('click', (e)=>{
+  const term = e.target.closest('.glossary-term');
+  if(term){ e.stopPropagation(); showGlossaryTooltip(term); return; }
+  if(!e.target.closest('#glossary-tooltip')) hideGlossaryTooltip();
+});
 
 /* =====================================================================
    card model
@@ -581,6 +703,7 @@ function renderQuizArea(container, quizzes, onDone){
       <div class="choice-list">${q.choices.map((c,ci)=>`<button class="choice-btn" data-qi="${qi}" data-ci="${ci}">${escapeHtml(c)}</button>`).join('')}</div>
       <div class="quiz-explain" style="display:none"></div>
     </div>`).join('');
+  linkGlossaryIn(container);
   const solved = new Set();
   container.querySelectorAll('.choice-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -597,6 +720,7 @@ function renderQuizArea(container, quizzes, onDone){
       const ex = card.querySelector('.quiz-explain');
       ex.style.display = 'block';
       ex.innerHTML = (isOk ? '✅ 正解。 ' : '❌ 不正解。 ') + q.explain;
+      linkGlossaryIn(ex);
       if(isOk){ solved.add(qi); if(solved.size === quizzes.length) onDone(); }
     });
   });
@@ -836,6 +960,7 @@ function mountSidePotStepper(root){
   let stepIdx = 0;
   function render(){
     renderSidePotDiagram(qs('#sidepot-flow-diagram', root), stepIdx);
+    linkGlossaryIn(qs('#sidepot-flow-diagram', root));
     qs('#sidepot-progress', root).textContent = `${stepIdx+1} / ${SIDEPOT_EVENTS.length}`;
     qs('#sidepot-prev', root).disabled = stepIdx===0;
   }
@@ -1008,6 +1133,7 @@ function mountHoldemFlowStepper(root){
   let stepIdx = 0;
   function render(){
     renderHoldemDiagram(qs('#holdem-flow-diagram', root), stepIdx);
+    linkGlossaryIn(qs('#holdem-flow-diagram', root));
     qs('#flow-progress', root).textContent = `${stepIdx+1} / ${HOLDEM_EVENTS.length}`;
     qs('#flow-prev', root).disabled = stepIdx===0;
   }
@@ -1113,6 +1239,7 @@ function mountPositionDemo(root){
   let stepIdx = 0;
   function render(){
     renderPositionDemo(qs('#position-demo-diagram', root), stepIdx);
+    linkGlossaryIn(qs('#position-demo-diagram', root));
     qs('#position-demo-progress', root).textContent = `${stepIdx+1} / ${POSITION_DEMO_EVENTS.length}`;
     qs('#position-demo-prev', root).disabled = stepIdx===0;
   }
@@ -1401,6 +1528,7 @@ function buildFinal(root, ctx){
             <button class="btn btn-primary" id="btn-continue">▶ 勝負を続ける</button>
           </div>
         </div>`;
+      linkGlossaryIn(root);
       qs('#btn-fold', root).addEventListener('click', ()=> finishHand('fold'));
       qs('#btn-continue', root).addEventListener('click', ()=>{
         if(street==='flop'){ street='turn'; renderDecision(); }
@@ -1423,6 +1551,7 @@ function buildFinal(root, ctx){
           <div class="showdown-result ${outcome}">${outcome==='win'?'🎉 あなたの勝ち！':outcome==='lose'?'😢 CPUの勝ち…':'🤝 引き分け'}</div>
           <div class="choice-list"><button class="btn btn-primary" id="btn-nexthand">次へ ▶</button></div>
         </div>`;
+      linkGlossaryIn(root);
       qs('#btn-nexthand', root).addEventListener('click', ()=> finishHand(outcome));
     }
 
@@ -1447,6 +1576,7 @@ function buildFinal(root, ctx){
         <div class="made-hand">勝ち ${wins} ／ 負け ${loses} ／ 引き分け ${ties} ／ フォールド ${folds}</div>
         <p class="step-note">役の見極め、ドローの見込み、無理をしない判断——ここまで学んだ知識を活かせたかな？</p>
       </div>`;
+    linkGlossaryIn(root);
     ctx.complete();
   }
 
@@ -1666,6 +1796,7 @@ function mountStage(index){
     },
   };
   meta.build(qs('#stage-play'), ctx);
+  linkGlossaryIn(main);
   renderSidebar();
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -1691,6 +1822,7 @@ function showEnding(){
       <button class="btn btn-primary" id="btn-replay">↺ はじめから学びなおす</button>
     </div>
   `;
+  linkGlossaryIn(main);
   qs('#btn-replay').addEventListener('click', ()=>{
     state.unlocked = 1; state.cleared = new Set();
     saveProgress();
