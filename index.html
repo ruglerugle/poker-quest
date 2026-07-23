@@ -720,23 +720,23 @@ const POSITION_TABLE = [
   {name:'BB(ビッグブラインド)', pre:'プリフロップ：最後', post:'フロップ以降：2番目(早い)', cat:'early'},
 ];
 const POSITION_DEMO_SEATS = [
-  {key:'a', name:'相手A(アーリー)'},
-  {key:'b', name:'相手B(ミドル)'},
+  {key:'a', name:'相手A(SB)'},
+  {key:'b', name:'相手B(BB)'},
   {key:'you', name:'あなた(ボタン)', isYou:true},
 ];
 const POSITION_DEMO_EVENTS = [
   {acting:null, resolved:{a:'SB 5', b:'BB 10'}, resolvedClass:'chip-blind', banner:'プリフロップ開始：まずブラインドが強制的に賭けられる',
-    caption:'ブラインドとは、プリフロップで強制的に賭けさせられる少額のベット。ボタンのすぐ左隣(ここでは相手A)がスモールブラインド(SB)、その隣(相手B)がビッグブラインド(BB)を払う。ホールカードを見る前に払う「参加料」のようなものだ。'},
+    caption:'ブラインドとは、プリフロップで強制的に賭けさせられる少額のベット。ボタンのすぐ左隣(ここでは相手A)がスモールブラインド(SB)、その隣(相手B)がビッグブラインド(BB)を払う。ホールカードを見る前に払う「参加料」のようなものだ。この3人テーブルでは、座席はボタン・SB・BBの3つだけになる。'},
   {acting:null, resolved:{a:'SB 5', b:'BB 10'}, resolvedClass:'chip-blind', banner:'ブラインドを払うと、プリフロップの行動順は「遅い」側になる',
     caption:'SBとBBはこのハンド最初の強制ベットを払うが、その後のプリフロップの行動順では逆に最後の方(遅い側)になる。しかしフロップ以降は一転、全員の中で最初に行動しなければならない——これがブラインドの特殊なところだ。'},
   {acting:null, resolved:{}, banner:'フロップが開いた。まだ誰も行動していない',
-    caption:'ポストフロップでは、ボタンの左隣の人から時計回りに行動する。今回は 相手A → 相手B → あなた の順。'},
-  {acting:'a', resolved:{}, banner:'相手A(アーリー)の番：誰の反応も見られないまま判断',
-    caption:'相手Aは、自分の手札とボードの情報だけで判断しなければならない。もっとも情報が少ない、不利な立場。'},
-  {acting:'b', resolved:{a:'チェック'}, banner:'相手B(ミドル)の番：相手Aの行動だけは見てから判断できる',
-    caption:'相手Bは、相手Aがチェックしたという情報を1つ得たうえで判断できる。'},
-  {acting:'you', resolved:{a:'チェック', b:'ベット 20'}, banner:'あなた(ボタン)の番：相手A・相手B、両方の行動を見てから判断できる',
-    caption:'一番遅く行動するボタンが、もっとも多くの情報を得られる＝もっとも有利なポジション。相手Bのベットにも「コール/レイズ/フォールド」を、相手の反応込みで判断できる。'},
+    caption:'ポストフロップでは、ボタンの左隣の人から時計回りに行動する。3人テーブルなら SB → BB → ボタン の順。今回は 相手A(SB) → 相手B(BB) → あなた(ボタン) の順。'},
+  {acting:'a', resolved:{}, banner:'相手A(SB)の番：誰の反応も見られないまま判断',
+    caption:'相手A(SB)は、自分の手札とボードの情報だけで判断しなければならない。ポストフロップでは全員の中で最初に行動する、もっとも情報が少ない立場。'},
+  {acting:'b', resolved:{a:'チェック'}, banner:'相手B(BB)の番：相手A(SB)の行動だけは見てから判断できる',
+    caption:'相手B(BB)は、相手A(SB)がチェックしたという情報を1つ得たうえで判断できる。'},
+  {acting:'you', resolved:{a:'チェック', b:'ベット 20'}, banner:'あなた(ボタン)の番：相手A(SB)・相手B(BB)、両方の行動を見てから判断できる',
+    caption:'一番遅く行動するボタンが、もっとも多くの情報を得られる＝もっとも有利なポジション。相手B(BB)のベットにも「コール/レイズ/フォールド」を、相手の反応込みで判断できる。'},
 ];
 function renderPositionDemo(container, idx){
   const ev = POSITION_DEMO_EVENTS[idx];
@@ -806,6 +806,12 @@ function buildPosition(root, ctx){
       <button class="btn btn-primary" id="position-demo-next">次へ ▶</button>
     </div>
     <div class="ref-head">📋 ポジションの一覧(6人テーブルの例)</div>
+    <div class="chen-box">
+      上のデモは3人テーブル(ボタン・SB・BB)の例だった。実際のテーブルはもっと人数が多く、
+      SB・BBの他に<b>UTG・MP・CO</b>といった、ブラインドを払わない席も増える。
+      SB・BBは「ブラインドを払う」という特別な役目を持つ独立した席で、UTGやMPとは別物。
+      それぞれのポジションを一覧で確認しよう。
+    </div>
     <div class="pos-table">
       <div class="pos-row head"><div>ポジション</div><div>プリフロップ</div><div>フロップ以降</div><div>速さ</div></div>
       ${posTableHtml}
