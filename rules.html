@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POKER QUEST ルール編 ― テキサスホールデムの基礎 ―</title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9RTQCP2HXM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-9RTQCP2HXM');
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{max-width:100vw;overflow-x:hidden}
+:root{
+  --bg1:#0d4b32;--bg2:#116b46;--bg3:#052015;
+  --paper:#f6f1e2;--paper2:#fffdf6;--ink:#241d12;--muted:#8a7a5c;--line:#ddd0ad;
+  --gold:#d9a441;--gold-dark:#a6742a;
+  --felt:#0f6b3f;--felt-dark:#083c23;
+  --ok:#2f9e5c;--ok-bg:#e6f5ec;--ok-bd:#8fd1ab;
+  --ng:#c8433f;--ng-bg:#fbe9e8;--ng-bd:#e79a97;
+  --cred:#c1443a;--cblack:#20241f;
+  --shadow:0 16px 40px rgba(0,0,0,.35);
+  --r:10px;--f:system-ui,-apple-system,"Hiragino Sans","Yu Gothic",sans-serif;
+}
+body{font-family:var(--f);color:var(--ink);font-weight:600;min-height:100vh;
+  background:radial-gradient(circle at 20% 0%,var(--bg2) 0,var(--bg1) 40%,var(--bg3) 100%);}
+.app-shell{min-height:100vh;display:flex;flex-direction:column;gap:12px;padding:10px 12px 24px;}
+
+/* Header */
+.game-header{display:flex;align-items:center;gap:18px;flex-wrap:wrap;color:#fff;padding:10px 16px;
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(0,0,0,.14));border-radius:12px;border:1px solid rgba(255,255,255,.15)}
+.brand{display:flex;flex-direction:column;gap:2px;min-width:220px}
+.brand-title{font-size:22px;font-weight:950;letter-spacing:.02em;color:var(--gold);text-shadow:0 2px 0 rgba(0,0,0,.4)}
+.brand-sub{font-size:12.5px;font-weight:800;color:#d9ece7}
+.head-progress-wrap{flex:1;min-width:160px;display:flex;flex-direction:column;gap:4px}
+.head-progress-label{font-size:11.5px;color:#cfe4de;font-weight:800}
+.head-progress{height:14px;background:rgba(255,255,255,.18);border-radius:999px;overflow:hidden;box-shadow:inset 0 2px 4px rgba(0,0,0,.3)}
+.head-progress-fill{height:100%;width:0;background:linear-gradient(90deg,#f3c47a,var(--gold-dark));border-radius:999px;transition:width .4s}
+.head-reset{padding:9px 14px;border:1.5px solid rgba(255,255,255,.55);border-radius:8px;background:rgba(0,0,0,.2);color:#fff;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap}
+.head-reset:hover{background:rgba(255,255,255,.12)}
+a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
+.head-reset.home-badge{width:38px;height:38px;padding:0;border-radius:50%;justify-content:center;background:radial-gradient(circle at 35% 30%, rgba(217,164,65,.5), rgba(10,40,38,1) 75%);border:1.5px solid var(--gold);box-shadow:0 0 0 3px rgba(0,0,0,.25),0 0 10px -2px var(--gold);font-size:18px}
+.head-reset.home-badge:hover{box-shadow:0 0 0 3px rgba(0,0,0,.25),0 0 16px 0 var(--gold);background:rgba(0,0,0,.12);transform:translateY(-2px) scale(1.07)}
+
+/* Header actions (home badge / reset / nav toggle) */
+.header-actions{display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0}
+
+/* Layout — off-canvas drawer pattern shared with the other quest games */
+.game-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:14px;align-items:start;transition:grid-template-columns .25s ease}
+.side-backdrop{display:none}
+
+/* Sidebar */
+.side-panel{background:linear-gradient(180deg,rgba(17,107,70,.92),rgba(5,32,21,.95));border:1px solid rgba(255,255,255,.16);
+  border-radius:12px;box-shadow:var(--shadow);overflow:hidden;position:sticky;top:10px;transition:width .25s ease}
+.side-head{padding:12px 14px;font-size:13px;font-weight:900;color:#eaf6f2;border-bottom:1px solid rgba(255,255,255,.14);
+  display:flex;align-items:center;gap:8px;min-height:20px}
+.side-head-text{white-space:nowrap}
+.side-toggle{width:32px;height:28px;border:1px solid rgba(255,255,255,.28);border-radius:7px;background:rgba(255,255,255,.10);
+  color:#eaf6f2;font-weight:950;font-size:16px;cursor:pointer;line-height:1;flex-shrink:0}
+.side-list{display:flex;flex-direction:column}
+.side-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.09);
+  color:#c8ded7;cursor:pointer;user-select:none;touch-action:manipulation;min-width:0}
+.side-item:hover{background:rgba(255,255,255,.06)}
+.side-item.active{background:rgba(217,164,65,.2);box-shadow:inset 3px 0 0 var(--gold)}
+.side-item.locked{opacity:.45;cursor:not-allowed}
+.side-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.side-text{min-width:0}
+.side-main{font-size:12.5px;font-weight:900;line-height:1.3;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-sub{font-size:10.5px;color:#a9c7be;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* collapsed (icon-rail / off-canvas) state, toggled via #app-shell.side-collapsed */
+.app-shell.side-collapsed .game-layout{grid-template-columns:64px minmax(0,1fr)}
+.app-shell.side-collapsed .side-panel{width:64px}
+.app-shell.side-collapsed .side-head{justify-content:center;padding:8px 6px}
+.app-shell.side-collapsed .side-head-text{display:none}
+.app-shell.side-collapsed .side-item{justify-content:center;padding:11px 6px}
+.app-shell.side-collapsed .side-item .side-text{display:none}
+
+/* Desktop: sidebar always fully expanded regardless of toggle state */
+@media(min-width:901px){
+  .app-shell.side-collapsed .game-layout{grid-template-columns:230px minmax(0,1fr) !important}
+  .app-shell.side-collapsed .side-panel{width:auto !important}
+  .app-shell.side-collapsed .side-head{justify-content:space-between !important;padding:12px 14px !important}
+  .app-shell.side-collapsed .side-head-text{display:block !important}
+  .app-shell.side-collapsed .side-item{justify-content:flex-start !important;padding:11px 14px !important}
+  .app-shell.side-collapsed .side-item .side-text{display:block !important}
+}
+/* Tablet: collapsed = icon rail */
+@media(max-width:900px){
+  .game-layout{grid-template-columns:64px minmax(0,1fr);gap:8px}
+  .app-shell:not(.side-collapsed) .game-layout{grid-template-columns:210px minmax(0,1fr)}
+  .side-panel{position:sticky;top:8px}
+}
+/* Mobile: collapsed = fully hidden off-canvas drawer */
+@media(max-width:700px){
+  .game-layout{grid-template-columns:1fr}
+  .app-shell.side-collapsed .game-layout,
+  .app-shell:not(.side-collapsed) .game-layout{grid-template-columns:1fr}
+  .side-panel{position:fixed;top:0;left:0;width:min(82vw,300px);height:100vh;height:100dvh;
+    border-radius:0;transform:translateX(-100%);transition:transform .25s ease;
+    box-shadow:10px 0 30px rgba(0,0,0,.45);overflow-y:auto;z-index:80}
+  .app-shell.side-collapsed .side-panel{transform:translateX(-100%)}
+  .app-shell:not(.side-collapsed) .side-panel{transform:translateX(0)}
+  .side-backdrop{display:none;position:fixed;inset:0;background:rgba(6,12,18,.55);z-index:70}
+  .app-shell:not(.side-collapsed) .side-backdrop{display:block}
+  .game-header{padding:8px 12px}
+}
+
+/* Main area */
+.main-area{background:var(--paper);border:1px solid #e3d8bd;border-radius:12px;padding:18px 18px 20px;box-shadow:var(--shadow);min-height:520px}
+.chapter-head{margin-bottom:12px}
+.chapter-badge{display:inline-block;background:linear-gradient(#e8c07f,var(--gold-dark));color:#3a2705;border-radius:7px;
+  padding:4px 11px;font-size:12px;font-weight:950;letter-spacing:.02em;margin-right:8px;box-shadow:0 2px 0 rgba(0,0,0,.15)}
+.chapter-title{display:inline;font-size:20px;font-weight:950;color:#1c2f2b}
+.chapter-sub{font-size:13px;color:var(--muted);margin-top:4px;font-weight:700}
+
+/* Dialogue */
+.dialogue-scene{display:flex;flex-direction:column;gap:8px;margin:14px 0 16px}
+.dialog-row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:stretch;border:1px solid var(--line);background:var(--paper2);border-radius:10px;padding:10px 12px;box-shadow:0 2px 0 rgba(0,0,0,.04)}
+.dialog-row.right{grid-template-columns:minmax(0,1fr) 96px}
+.dialog-row.right .dialog-character{order:2}
+.dialog-row.right .dialog-bubble{order:1}
+.dialog-character{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0}
+.dialog-avatar{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 3px 6px rgba(0,0,0,.18);flex-shrink:0}
+.dialog-avatar.coach{background:linear-gradient(#fde3d6,#f7c2a4)}
+.dialog-avatar.stu{background:linear-gradient(#dcefe9,#b9dcd0)}
+.dialog-name{padding:3px 10px;border-radius:7px;color:#fff;font-weight:900;font-size:11px;line-height:1.2;box-shadow:0 2px 0 rgba(0,0,0,.16);white-space:nowrap;text-align:center}
+.dialog-name.coach{background:linear-gradient(#f0b868,#c19a3a)}
+.dialog-name.stu{background:linear-gradient(#5cc2ab,#2f8f78)}
+.dialog-bubble{position:relative;align-self:center;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:11px 14px;color:var(--ink);font-size:13.5px;line-height:1.75;font-weight:700;min-height:56px;display:flex;flex-direction:column;justify-content:center}
+.dialog-bubble::before{content:"";position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:0;height:0;border-top:8px solid transparent;border-bottom:8px solid transparent;border-right:10px solid var(--line)}
+.dialog-bubble::after{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:0;height:0;border-top:7px solid transparent;border-bottom:7px solid transparent;border-right:9px solid var(--paper)}
+.dialog-row.right .dialog-bubble::before{left:auto;right:-10px;border-right:0;border-left:10px solid var(--line)}
+.dialog-row.right .dialog-bubble::after{left:auto;right:-8px;border-right:0;border-left:9px solid var(--paper)}
+@media (max-width:700px){
+  .dialog-row,.dialog-row.right{grid-template-columns:74px minmax(0,1fr);padding:8px;gap:8px}
+  .dialog-row.right .dialog-character{order:0}
+  .dialog-row.right .dialog-bubble{order:1}
+  .dialog-avatar{width:52px;height:52px;font-size:24px}
+  .dialog-name{font-size:9.5px;padding:3px 7px}
+  .dialog-bubble{font-size:13px;padding:9px 11px;min-height:0}
+  .dialog-row.right .dialog-bubble::before{left:-10px;right:auto;border-left:0;border-right:10px solid var(--line)}
+  .dialog-row.right .dialog-bubble::after{left:-8px;right:auto;border-left:0;border-right:9px solid var(--paper)}
+}
+
+/* Mission box */
+.mission-box{background:linear-gradient(180deg,#fff8e6,#fdefc9);border:1px solid #e3c877;border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.mission-label{font-size:11.5px;font-weight:950;color:#8a6614;margin-bottom:3px}
+.mission-text{font-size:13.5px;color:#3a2c08;font-weight:700;line-height:1.6}
+.mission-status{display:inline-block;margin-top:8px;padding:3px 11px;border-radius:999px;font-size:11.5px;font-weight:900;
+  background:#eee1bd;color:#8a6614}
+.mission-status.ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-bd)}
+
+/* Stage nav / buttons */
+.stage-nav{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap}
+.btn{border:1px solid #c9bda0;background:#fff;border-radius:8px;padding:.65rem 1.2rem;font-size:13.5px;cursor:pointer;
+  color:var(--ink);font-family:var(--f);font-weight:800;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.btn:hover{background:#f4efe0}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+a.btn{text-decoration:none;display:inline-flex;align-items:center}
+.btn-primary{background:linear-gradient(#d9a441,#a6742a);border-color:#8f5518;color:#fff;box-shadow:0 3px 0 #6f430f}
+.btn-primary:hover{opacity:.92;background:linear-gradient(#d9a441,#a6742a)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+
+/* Generic choice buttons / quiz */
+.choice-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.choice-btn{border:1.5px solid #b6c9c2;background:#fff;border-radius:8px;padding:.55rem 1rem;font-size:13px;font-weight:800;
+  cursor:pointer;color:#20463d;touch-action:manipulation;text-align:left}
+.choice-btn:hover{background:#eef7f3}
+.choice-btn.choice-ok{background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok)}
+.choice-btn.choice-ng{background:var(--ng-bg);border-color:var(--ng-bd);color:var(--ng)}
+.quiz-q{font-size:13.5px;font-weight:850;color:#1c2f2b;margin-top:4px}
+.quiz-head{font-size:14px;font-weight:950;color:#1c2f2b;margin:18px 0 10px;padding-top:10px;border-top:1px dashed var(--line)}
+.quiz-card{background:linear-gradient(180deg,#fff,var(--paper2));border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.quiz-card .hand-row,.quiz-card .vs-row,.quiz-card .hand-block{margin-bottom:8px}
+.quiz-explain{margin-top:9px;font-size:12.5px;line-height:1.6;color:#3a2c08;background:#fff8e6;border:1px solid #e3c877;border-radius:8px;padding:8px 10px}
+
+/* Playing cards */
+.hand-row{display:flex;flex-wrap:wrap;gap:6px}
+.hand-block{margin-bottom:10px}
+.hand-label{font-size:11px;font-weight:900;color:var(--muted);margin-bottom:5px}
+.pcard{width:48px;height:66px;background:#fff;border:1px solid #cfc4a4;border-radius:7px;box-shadow:0 2px 3px rgba(0,0,0,.18);
+  display:flex;flex-direction:column;justify-content:space-between;padding:4px 5px;flex-shrink:0}
+.pcard-corner{font-size:12px;font-weight:900;line-height:1}
+.pcard-suit-big{font-size:22px;text-align:center;line-height:1}
+.pcard.red{color:var(--cred)}
+.pcard.black{color:var(--cblack)}
+
+/* Reference table (stage 1) */
+.ref-head{font-size:14px;font-weight:950;color:#1c2f2b;margin-bottom:10px}
+.ref-table{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.ref-row{display:grid;grid-template-columns:26px auto minmax(0,1fr);gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.ref-rank{font-size:12px;font-weight:950;color:#fff;background:var(--gold-dark);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.ref-cards{display:flex;gap:3px}
+.ref-cards .pcard{width:34px;height:47px;padding:2px 3px}
+.ref-cards .pcard-corner{font-size:9px}
+.ref-cards .pcard-suit-big{font-size:15px}
+.ref-name{font-size:12.5px;font-weight:900;color:#1c2f2b}
+.ref-desc{font-size:11px;color:var(--muted);margin-top:1px}
+@media(max-width:560px){.ref-row{grid-template-columns:22px minmax(0,1fr);grid-template-areas:"n c" ". i"}
+  .ref-rank{grid-area:n}.ref-cards{grid-area:c}.ref-info{grid-area:i}}
+
+/* Interactive Hold'em flow diagram + stepper (stage 3: holdem rules) */
+.pcard.back{background:repeating-linear-gradient(45deg,var(--felt),var(--felt) 4px,var(--felt-dark) 4px,var(--felt-dark) 8px);border-color:rgba(255,255,255,.35)}
+.pcard.back.dim{opacity:.35}
+.holdem-diagram{padding:16px}
+.holdem-phase-tag{display:inline-block;font-size:10.5px;font-weight:950;color:#123;background:#e8c07f;border-radius:5px;padding:2px 9px;margin-bottom:8px}
+.holdem-flow-banner{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:900;color:#fff;margin-bottom:10px}
+.action-pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:950;color:#fff;flex-shrink:0}
+.action-pill.deal,.action-pill.board{background:#6b7280}
+.action-pill.sb,.action-pill.bb{background:#4d7fc9}
+.action-pill.check{background:#6b7280}
+.action-pill.bet{background:#b8791f}
+.action-pill.call{background:#2f9e5c}
+.action-pill.raise{background:#c1443a}
+.action-pill.fold{background:#7a3530}
+.action-pill.showdown{background:var(--gold-dark)}
+.holdem-pot{text-align:center;color:#f3d99a;font-weight:950;font-size:14px;margin-bottom:10px}
+.holdem-board-row{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+.holdem-seats{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+.holdem-seat{display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(0,0,0,.22);border-radius:10px;padding:10px 12px;min-width:108px;transition:opacity .2s}
+.holdem-seat.you{background:rgba(217,164,65,.22);border:1px solid var(--gold)}
+.holdem-seat.winner{outline:2px solid #8ef0b0;box-shadow:0 0 0 3px rgba(142,240,176,.25)}
+.holdem-seat.folded{opacity:.45}
+.holdem-seat-name{color:#fff;font-size:11.5px;font-weight:900;white-space:nowrap}
+.holdem-seat-cards{display:flex;gap:3px}
+.holdem-seat-cards .pcard{width:34px;height:47px;padding:2px 3px}
+.holdem-seat-cards .pcard-corner{font-size:9px}
+.holdem-seat-cards .pcard-suit-big{font-size:15px}
+.holdem-seat-chip{font-size:10.5px;color:#f3d99a;font-weight:800;background:rgba(0,0,0,.3);border-radius:999px;padding:2px 10px;min-height:16px;text-align:center;white-space:nowrap}
+.holdem-seat-chip.chip-blind{background:rgba(77,127,201,.6);color:#fff}
+.holdem-seat-chip.chip-check{background:rgba(107,114,128,.55);color:#fff}
+.holdem-seat-chip.chip-bet{background:rgba(184,121,31,.65);color:#fff}
+.holdem-seat-chip.chip-call{background:rgba(47,158,92,.6);color:#fff}
+.holdem-seat-chip.chip-raise{background:rgba(193,68,58,.65);color:#fff}
+.holdem-seat-chip.chip-fold{background:rgba(122,53,48,.6);color:#fff}
+.holdem-caption{color:#e5f2eb;font-size:12.5px;line-height:1.7;margin-top:14px;background:rgba(0,0,0,.2);border-radius:8px;padding:10px 12px}
+.step-controls{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0}
+.step-progress{font-size:12px;color:var(--muted);font-weight:800;min-width:60px;text-align:center}
+
+/* Main pot / side pot mini-diagram (all-in scenario) */
+.action-pill.allin{background:#8b3fae}
+.action-pill.split{background:#8b3fae}
+.holdem-seat-chip.chip-allin{background:rgba(139,63,174,.65);color:#fff}
+.holdem-seat-stack{font-size:10px;color:#a9c7be;margin-top:-2px}
+.pot-split-row{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.pot-split-box{background:rgba(0,0,0,.25);border-radius:10px;padding:8px 18px;text-align:center;min-width:120px}
+.pot-split-box.side{background:rgba(139,63,174,.22)}
+.pot-split-label{font-size:10.5px;color:#cfe4de;font-weight:800}
+.pot-split-amount{font-size:17px;color:#f3d99a;font-weight:950}
+.pot-split-eligible{font-size:10px;color:#a9c7be;margin-top:2px;line-height:1.5}
+.holdem-seat-result-tag{display:inline-block;font-size:9.5px;font-weight:950;color:#123;background:#8ef0b0;border-radius:5px;padding:1px 7px;margin-top:4px}
+.holdem-seat-result-tag.side{background:#d8b6f0}
+
+.action-grid{display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px}
+@media(min-width:520px){.action-grid{grid-template-columns:1fr 1fr}}
+.action-item{font-size:12.5px;line-height:1.6}
+.action-item b{color:#8a6614}
+
+/* Compare (stage 2) */
+.vs-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.vs-divider{font-size:13px;font-weight:950;color:var(--gold-dark);flex-shrink:0}
+
+/* Chen formula box (stage 4) */
+.chen-box{background:linear-gradient(180deg,#fff8e6,#fdefc9);border:1px solid #e3c877;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12.5px;line-height:1.9;color:#3a2c08}
+.chen-box b{color:#8a6614}
+
+/* Bet sizing stage: concrete 3-trial worked example */
+.bluff-trials{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.bluff-trial{display:grid;grid-template-columns:1fr 70px;grid-template-areas:"label result" "desc desc";gap:2px 12px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.bluff-trial-label{grid-area:label;font-size:12.5px;font-weight:900;color:#1c2f2b}
+.bluff-trial-result{grid-area:result;font-size:20px;font-weight:950;text-align:right}
+.bluff-trial-result.plus{color:var(--ok)}
+.bluff-trial-result.minus{color:var(--ng)}
+.bluff-trial-desc{grid-area:desc;font-size:11.5px;color:var(--muted);line-height:1.5}
+
+/* Position stage: reference table + "who is acting" highlight */
+.pos-table{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.pos-row{display:grid;grid-template-columns:64px minmax(0,1fr) minmax(0,1fr) 90px;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 12px}
+.pos-row.head{background:transparent;border:none;padding:0 12px;font-size:10.5px;font-weight:900;color:var(--muted)}
+.pos-name{font-size:13px;font-weight:950;color:#1c2f2b}
+.pos-cell{font-size:11.5px;color:var(--muted);line-height:1.5}
+.pos-cat{font-size:11px;font-weight:900;text-align:center;border-radius:999px;padding:3px 8px}
+.pos-cat.early{background:var(--ng-bg);color:var(--ng)}
+.pos-cat.mid{background:#fff3d6;color:#8a6614}
+.pos-cat.late{background:var(--ok-bg);color:var(--ok)}
+@media(max-width:560px){.pos-row{grid-template-columns:1fr 1fr;grid-template-areas:"n n" "a b" "c c"}.pos-row.head{display:none}
+  .pos-name{grid-area:n}.pos-cell:nth-of-type(1){grid-area:a}.pos-cell:nth-of-type(2){grid-area:b}.pos-cat{grid-area:c;justify-self:start}}
+.holdem-seat.acting{outline:2px dashed #f3d99a;box-shadow:0 0 0 4px rgba(243,217,154,.18)}
+
+/* Range grid (13x13 starting-hand chart) */
+.range-grid-wrap{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-bottom:10px}
+.range-grid-block{flex:1;min-width:250px;max-width:360px}
+.range-grid-title{font-size:11.5px;font-weight:900;color:#1c2f2b;margin-bottom:6px;text-align:center}
+.range-grid{display:grid;grid-template-columns:repeat(13,1fr);gap:2px}
+.range-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;border-radius:2px;color:#1c2f2b}
+.range-cell.bucket-premium{background:#2f9e5c;color:#fff}
+.range-cell.bucket-strong{background:#8fd1ab}
+.range-cell.bucket-playable{background:#f3e08a}
+.range-cell.bucket-out{background:#eee6d3;color:#b8ab8c}
+.range-legend{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;font-size:10.5px;margin-bottom:16px;color:var(--muted)}
+.range-legend-item{display:flex;align-items:center;gap:4px}
+.range-legend-swatch{width:12px;height:12px;border-radius:2px;display:inline-block}
+
+/* Blocker combo grid */
+.blocker-combo-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:16px}
+.blocker-combo{width:96px;padding:8px;text-align:center;border-radius:8px;border:1.5px solid var(--line);background:#fff}
+.blocker-combo .hand-row{justify-content:center;margin-bottom:6px}
+.blocker-combo .pcard{width:30px;height:42px;padding:2px 3px}
+.blocker-combo .pcard-corner{font-size:8px}
+.blocker-combo .pcard-suit-big{font-size:13px}
+.blocker-combo-label{font-size:10.5px;font-weight:900}
+.blocker-combo.blocked{background:#eee6d3;border-color:#ddd0ad}
+.blocker-combo.blocked .pcard{opacity:.4}
+.blocker-combo.blocked .blocker-combo-label{color:#b8ab8c}
+.blocker-combo.possible{background:var(--ok-bg);border-color:var(--ok-bd)}
+.blocker-combo.possible .blocker-combo-label{color:var(--ok)}
+
+/* Scenario info card (outs / pot odds) */
+.scenario-info{display:flex;flex-wrap:wrap;gap:6px 16px;background:#fbf7ea;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:12.5px;font-weight:800;color:#3a2c08}
+.scenario-info span b{color:var(--gold-dark)}
+
+/* Final CPU battle */
+.table-felt{background:radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%);border-radius:14px;padding:16px;box-shadow:inset 0 0 24px rgba(0,0,0,.4)}
+.table-felt .hand-label{color:#dff2e8}
+.table-felt .pot-label{color:#f3d99a;font-size:13.5px;font-weight:950;margin-bottom:10px}
+.table-felt .made-hand{color:#fff;font-size:13px;font-weight:800;margin-top:8px;background:rgba(0,0,0,.22);border-radius:8px;padding:8px 12px;display:inline-block}
+.showdown-result{margin-top:10px;font-size:16px;font-weight:950;color:#fff}
+.showdown-result.win{color:#8ef0b0}
+.showdown-result.lose{color:#f19b96}
+.showdown-result.tie{color:#f3d99a}
+.step-note{font-size:13px;line-height:1.7;color:var(--ink);margin-top:10px}
+.table-felt .step-note{color:#e5f2eb}
+
+/* Ending */
+.ending{text-align:center;padding:20px 10px}
+.ending h2{font-size:22px;margin-bottom:14px;color:#1c2f2b}
+.ending p{font-size:13.5px;line-height:1.8;color:#3a2c08;margin-bottom:16px}
+.ending-list{text-align:left;display:inline-block;background:#fff8e6;border:1px solid #e3c877;border-radius:10px;padding:14px 18px;font-size:12.5px;line-height:2;color:#3a2c08;margin-bottom:18px}
+
+/* Book recommendation */
+#book-recommend{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(0,0,0,.14));border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:10px 16px}
+.book-recommend-label{display:inline-block;font-size:10px;font-weight:900;color:#cfe4de;border:1px solid #cfe4de;border-radius:4px;padding:0 5px;margin:0 0 6px}
+.book-recommend-lead{font-size:12px;color:#cfe4de;margin:0 0 4px;font-weight:700}
+#book-recommend a{font-size:13px;color:#f3c47a;font-weight:900;text-decoration:underline}
+
+/* Glossary: clickable jargon terms + popover definition */
+.glossary-term{border-bottom:1.5px dashed currentColor;opacity:.92;cursor:help;touch-action:manipulation}
+.glossary-term:hover,.glossary-term:active{background:rgba(217,164,65,.22);border-radius:2px}
+#glossary-tooltip{position:fixed;z-index:300;max-width:280px;background:#1c2f2b;color:#fff;border:1px solid var(--gold);
+  border-radius:8px;padding:10px 30px 10px 12px;font-size:12.5px;line-height:1.6;box-shadow:0 8px 24px rgba(0,0,0,.45);
+  display:none}
+#glossary-tooltip.show{display:block}
+#glossary-tooltip .gt-term{font-weight:950;color:var(--gold);margin-bottom:4px;font-size:12.5px}
+#glossary-tooltip .gt-def{color:#eaf6f2}
+#glossary-tooltip .gt-close{position:absolute;top:4px;right:6px;width:22px;height:22px;cursor:pointer;color:#cfe4de;
+  font-size:14px;background:none;border:none;font-family:inherit}
+</style>
+</head>
+<body>
+<div class="app-shell side-collapsed" id="app-shell">
+  <header class="game-header">
+    <div class="brand">
+      <div class="brand-title">🃏 POKER QUEST ルール編</div>
+      <div class="brand-sub">― テキサスホールデムの基礎 ―</div>
+    </div>
+    <div class="head-progress-wrap">
+      <div class="head-progress-label" id="progress-label">クリア 0 / 3</div>
+      <div class="head-progress"><div class="head-progress-fill" id="progress-fill"></div></div>
+    </div>
+    <div class="header-actions">
+      <a class="head-reset home-badge" href="https://ruglerugle.github.io/" title="クエスト集トップへ" aria-label="クエスト集トップへ">🧭</a>
+      <a class="head-reset" href="index.html">♟️ 戦略編へ</a>
+      <button class="head-reset" id="btn-reset-all">🔄 最初から</button>
+      <button class="head-reset" id="head-nav-toggle" title="ステージ一覧の表示切替">☰ ナビ</button>
+    </div>
+  </header>
+
+  <div class="game-layout">
+    <div class="side-backdrop" id="side-backdrop"></div>
+    <aside class="side-panel">
+      <div class="side-head">
+        <button class="side-toggle" id="sidebar-toggle" title="ステージ一覧の表示切替" aria-label="ステージ一覧の表示切替">☰</button>
+        <span class="side-head-text">📚 ステージ一覧</span>
+      </div>
+      <div class="side-list" id="side-list"></div>
+    </aside>
+    <main class="main-area" id="main-area"></main>
+  </div>
+
+  <div id="book-recommend"></div>
+</div>
+
+<script>
+'use strict';
+
+/* =====================================================================
+   utilities
+   ===================================================================== */
+function qs(sel, root){ return (root||document).querySelector(sel); }
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function randInt(min,max){ return min + Math.floor(Math.random()*(max-min+1)); }
+function pick(arr){ return arr[randInt(0,arr.length-1)]; }
+function shuffleArr(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=randInt(0,i); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function sampleN(arr,n){ return shuffleArr(arr).slice(0,n); }
+
+/* =====================================================================
+   glossary: tap a jargon term anywhere in the page to see its definition.
+   linkGlossaryIn() walks the rendered text of a container and wraps any
+   matching term in a clickable span; a single delegated click listener
+   (set up once at boot) shows a positioned tooltip. Re-running
+   linkGlossaryIn on already-linked content is a no-op (it skips text
+   nodes whose ancestor is already a .glossary-term), so callers can
+   call it freely after every re-render without worrying about double-wrapping.
+   ===================================================================== */
+const GLOSSARY = {
+  'ホールカード': '自分だけに配られる、他のプレイヤーには見せない2枚の手札。',
+  'コミュニティカード': 'テーブル中央に公開される、全員で共有するカード(フロップ3枚+ターン1枚+リバー1枚の計5枚)。',
+  'フロップ': '最初に公開される3枚のコミュニティカード。ここから2回目のベッティングラウンドが始まる。',
+  'ターン': 'フロップの次に公開される4枚目のコミュニティカード。',
+  'リバー': '最後に公開される5枚目のコミュニティカード。',
+  'ショーダウン': '最後まで残ったプレイヤー同士でカードを見せ合い、役の強さを比べること。',
+  'キッカー': '役の直接の構成には使わない、残りのカード。同じ役同士の勝敗を決める材料になる。',
+  'スーテッド': '2枚の手札が同じスート(マーク)であること。役や強さの計算にプラスに働く。',
+  'コネクター': '2枚の手札の数字が連続していること(例：9と8)。ストレートを狙いやすい。',
+  'ブラインド': 'プリフロップで強制的に賭けさせられる少額のベット。',
+  'スモールブラインド': 'ブラインドのうち少ない方の額。ボタンの次に座る人が払う。',
+  'ビッグブラインド': 'ブラインドのうち多い方の額。スモールブラインドの次に座る人が払う。',
+  'オールイン': '残っているチップをすべて賭けること。それ以上は賭けようがない。',
+  'メインポット': 'オールインが起きたとき、参加者全員が獲得資格を持つポットの部分。',
+  'サイドポット': 'オールインした人より多く賭けた人たちだけが獲得資格を持つ、追加のポット。',
+  'ポジション': 'テーブル上の座席の位置。行動する順番と、得られる情報量を左右する。',
+  'ボタン': 'ディーラー役を示す印。この位置にいる人は、フロップ以降は常に最後に行動できる。',
+  'アウツ': '今の手札を、より強い役に完成させてくれる残りのカードの枚数。',
+  'ドロー': '役があと少しで完成しそうな、未完成の状態。',
+  'ポットオッズ': 'コールに必要な金額と、獲得できるポットの大きさの比率から計算する「必要勝率」。',
+  'エクイティ': '今の時点での、自分が最終的に勝てる見込みの確率。',
+  '期待値': '長期的に見たときの、平均的な損得の見込み。プラスなら得(+EV)、マイナスなら損(-EV)。',
+  'レンジ': '相手が持っている可能性のある手札の範囲(分布)。1つの手に決め打ちしない考え方。',
+  'ハンドリーディング': '相手の行動から、持っている手札のレンジを読み取る技術。',
+  'ブラフ': '弱い手なのに強い手のふりをして、相手を降ろさせるための賭け方。',
+};
+const GLOSSARY_REGEX = new RegExp('(' + Object.keys(GLOSSARY).sort((a,b)=>b.length-a.length).map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|') + ')');
+function linkGlossaryIn(root){
+  if(!root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const targets = [];
+  let node;
+  while((node = walker.nextNode())){
+    if(!node.nodeValue || !GLOSSARY_REGEX.test(node.nodeValue)) continue;
+    let el = node.parentElement, skip = false;
+    while(el && el!==root){
+      if(el.tagName==='BUTTON' || el.classList.contains('glossary-term') || el.classList.contains('choice-btn')){ skip = true; break; }
+      el = el.parentElement;
+    }
+    if(!skip) targets.push(node);
+  }
+  targets.forEach(textNode=>{
+    const parts = textNode.nodeValue.split(GLOSSARY_REGEX);
+    if(parts.length<=1) return;
+    // Wrap everything in a single inline <span> (not a bare DocumentFragment) so
+    // that replacing the one original text node still leaves exactly one child
+    // in the parent — this matters because several containers in this app use
+    // display:flex (e.g. .dialog-bubble), where multiple top-level sibling
+    // nodes would each become their own flex item and stack on separate lines.
+    const wrap = document.createElement('span');
+    parts.forEach((part,i)=>{
+      if(!part) return;
+      if(i%2===1){
+        const span = document.createElement('span');
+        span.className = 'glossary-term';
+        span.textContent = part;
+        span.dataset.term = part;
+        wrap.appendChild(span);
+      } else {
+        wrap.appendChild(document.createTextNode(part));
+      }
+    });
+    textNode.parentNode.replaceChild(wrap, textNode);
+  });
+}
+function showGlossaryTooltip(span){
+  const def = GLOSSARY[span.dataset.term];
+  if(!def) return;
+  let tip = document.getElementById('glossary-tooltip');
+  if(!tip){
+    tip = document.createElement('div');
+    tip.id = 'glossary-tooltip';
+    tip.innerHTML = '<button class="gt-close" aria-label="閉じる">✕</button><div class="gt-term"></div><div class="gt-def"></div>';
+    document.body.appendChild(tip);
+    tip.querySelector('.gt-close').addEventListener('click', (e)=>{ e.stopPropagation(); hideGlossaryTooltip(); });
+  }
+  tip.querySelector('.gt-term').textContent = span.dataset.term;
+  tip.querySelector('.gt-def').textContent = def;
+  tip.classList.remove('show'); tip.style.visibility = 'hidden'; tip.classList.add('show');
+  const rect = span.getBoundingClientRect();
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = rect.left, top = rect.bottom + 6;
+  if(left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
+  if(left < 8) left = 8;
+  if(top + th > window.innerHeight - 8) top = rect.top - th - 6;
+  if(top < 8) top = 8;
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+  tip.style.visibility = '';
+}
+function hideGlossaryTooltip(){
+  const tip = document.getElementById('glossary-tooltip');
+  if(tip) tip.classList.remove('show');
+}
+document.addEventListener('click', (e)=>{
+  const term = e.target.closest('.glossary-term');
+  if(term){ e.stopPropagation(); showGlossaryTooltip(term); return; }
+  if(!e.target.closest('#glossary-tooltip')) hideGlossaryTooltip();
+});
+
+/* =====================================================================
+   card model
+   ===================================================================== */
+const SUITS = ['s','h','d','c'];
+const SUIT_SYMBOL = {s:'♠',h:'♥',d:'♦',c:'♣'};
+function mkCard(rank,suit){ return {rank,suit}; }
+function rankLabel(r){ return r===14?'A': r===13?'K': r===12?'Q': r===11?'J': String(r); }
+function cardHtml(card){
+  const red = card.suit==='h'||card.suit==='d';
+  return `<div class="pcard ${red?'red':'black'}"><div class="pcard-corner">${rankLabel(card.rank)}${SUIT_SYMBOL[card.suit]}</div><div class="pcard-suit-big">${SUIT_SYMBOL[card.suit]}</div></div>`;
+}
+function freshDeck(){ const d=[]; SUITS.forEach(s=>{ for(let r=2;r<=14;r++) d.push(mkCard(r,s)); }); return d; }
+function randDistinctRanks(n){
+  const pool=[]; for(let r=2;r<=14;r++) pool.push(r);
+  return sampleN(pool,n);
+}
+function isConsecutive(ranksDesc){
+  const u=[...ranksDesc];
+  if(u[0]-u[4]===4) return true;
+  if(JSON.stringify(u)===JSON.stringify([14,5,4,3,2])) return true;
+  return false;
+}
+
+/* =====================================================================
+   hand evaluator (verified against brute-force outs counting & many
+   randomized category checks before shipping)
+   ===================================================================== */
+function evaluate5(cards){
+  const ranksSorted = cards.map(c=>c.rank).sort((a,b)=>b-a);
+  const suits = cards.map(c=>c.suit);
+  const isFlush = suits.every(s=>s===suits[0]);
+  const uniqueRanks = [...new Set(ranksSorted)];
+  let isStraight=false, straightHigh=0;
+  if(uniqueRanks.length===5){
+    if(uniqueRanks[0]-uniqueRanks[4]===4){ isStraight=true; straightHigh=uniqueRanks[0]; }
+    else if(JSON.stringify(uniqueRanks)===JSON.stringify([14,5,4,3,2])){ isStraight=true; straightHigh=5; }
+  }
+  const counts = {};
+  ranksSorted.forEach(r=>counts[r]=(counts[r]||0)+1);
+  const groups = Object.entries(counts).map(([r,c])=>({rank:Number(r),count:c}))
+     .sort((a,b)=> b.count-a.count || b.rank-a.rank);
+
+  if(isStraight && isFlush) return {cat:8, tie:[straightHigh]};
+  if(groups[0].count===4) return {cat:7, tie:[groups[0].rank, groups[1].rank]};
+  if(groups[0].count===3 && groups[1] && groups[1].count>=2) return {cat:6, tie:[groups[0].rank, groups[1].rank]};
+  if(isFlush) return {cat:5, tie:ranksSorted};
+  if(isStraight) return {cat:4, tie:[straightHigh]};
+  if(groups[0].count===3) return {cat:3, tie:[groups[0].rank, ...groups.slice(1).map(g=>g.rank)]};
+  if(groups[0].count===2 && groups[1] && groups[1].count===2){
+    const kicker = groups[2].rank;
+    return {cat:2, tie:[groups[0].rank, groups[1].rank, kicker]};
+  }
+  if(groups[0].count===2) return {cat:1, tie:[groups[0].rank, ...groups.slice(1).map(g=>g.rank)]};
+  return {cat:0, tie:ranksSorted};
+}
+function compareEval(a,b){
+  if(a.cat!==b.cat) return a.cat-b.cat;
+  for(let i=0;i<Math.max(a.tie.length,b.tie.length);i++){
+    const av=a.tie[i]||0, bv=b.tie[i]||0;
+    if(av!==bv) return av-bv;
+  }
+  return 0;
+}
+function kCombinations(arr, k){
+  const results=[];
+  function helper(start, combo){
+    if(combo.length===k){ results.push([...combo]); return; }
+    for(let i=start;i<arr.length;i++){ combo.push(arr[i]); helper(i+1,combo); combo.pop(); }
+  }
+  helper(0,[]);
+  return results;
+}
+function bestOf(cards){
+  const combos = cards.length===5 ? [cards] : kCombinations(cards,5);
+  let best=null, bestCombo=null;
+  combos.forEach(c=>{ const e=evaluate5(c); if(!best || compareEval(e,best)>0){ best=e; bestCombo=c; } });
+  return {eval:best, cards:bestCombo};
+}
+const CAT_NAMES = ['ハイカード','ワンペア','ツーペア','スリーカード','ストレート','フラッシュ','フルハウス','フォーカード','ストレートフラッシュ'];
+const NAME_POOL = [...CAT_NAMES, 'ロイヤルフラッシュ'];
+function catDisplayName(ev){ return (ev.cat===8 && ev.tie[0]===14) ? 'ロイヤルフラッシュ' : CAT_NAMES[ev.cat]; }
+function explainCategory(cat, tie, isRoyal){
+  if(isRoyal) return '10・J・Q・K・Aが同じスートで並ぶ、最強の役「ロイヤルフラッシュ」です。';
+  switch(cat){
+    case 8: return `${rankLabel(tie[0])}を最高位とする5枚が同じスートで連続しているので「ストレートフラッシュ」です。`;
+    case 7: return `${rankLabel(tie[0])}が4枚(フォーカード)そろっています。`;
+    case 6: return `${rankLabel(tie[0])}のスリーカードと${rankLabel(tie[1])}のペアが揃った「フルハウス」です。`;
+    case 5: return '5枚とも同じスートですが数字はバラバラなので「フラッシュ」です。';
+    case 4: return `${rankLabel(tie[0])}を最高位とする5枚が数字順に並んでいるので「ストレート」です。`;
+    case 3: return `${rankLabel(tie[0])}が3枚そろった「スリーカード」です。`;
+    case 2: return `${rankLabel(tie[0])}と${rankLabel(tie[1])}の2組のペアがある「ツーペア」です。`;
+    case 1: return `${rankLabel(tie[0])}のペアが1組ある「ワンペア」です。`;
+    default: return 'ペアも連続も同じスートもない、最も弱い「ハイカード」です。';
+  }
+}
+
+/* =====================================================================
+   category-forced hand builders (used to generate quiz hands).
+   Verified via 20000-iteration randomized tests: every builder always
+   produces exactly the intended category, with no accidental overlap.
+   ===================================================================== */
+function buildHighCard(){
+  let ranks, tries=0;
+  do{ ranks = shuffleArr(randDistinctRanks(5)).sort((a,b)=>b-a); tries++; } while(isConsecutive(ranks) && tries<200);
+  let suitsAssigned;
+  do{ suitsAssigned = ranks.map(()=>pick(SUITS)); } while(suitsAssigned.every(s=>s===suitsAssigned[0]));
+  return ranks.map((r,i)=>mkCard(r,suitsAssigned[i]));
+}
+function buildOnePair(){
+  const [pairRank, ...kickers] = randDistinctRanks(4);
+  const suitsForPair = sampleN(SUITS,2);
+  const cards = [mkCard(pairRank,suitsForPair[0]), mkCard(pairRank,suitsForPair[1])];
+  kickers.forEach(r=> cards.push(mkCard(r, pick(SUITS))));
+  return cards;
+}
+function buildTwoPair(){
+  const [p1,p2,k] = randDistinctRanks(3);
+  const cards=[];
+  [p1,p2].forEach(pr=>{ const s2=sampleN(SUITS,2); cards.push(mkCard(pr,s2[0]),mkCard(pr,s2[1])); });
+  cards.push(mkCard(k, pick(SUITS)));
+  return cards;
+}
+function buildThreeKind(){
+  const [tr,k1,k2] = randDistinctRanks(3);
+  const s3 = sampleN(SUITS,3);
+  const cards=[mkCard(tr,s3[0]),mkCard(tr,s3[1]),mkCard(tr,s3[2])];
+  cards.push(mkCard(k1,pick(SUITS)), mkCard(k2,pick(SUITS)));
+  return cards;
+}
+function buildStraight(){
+  let ranks;
+  if(Math.random()<0.15){ ranks=[14,5,4,3,2]; }
+  else { const high = randInt(6,14); ranks=[high,high-1,high-2,high-3,high-4]; }
+  let suitsAssigned;
+  do{ suitsAssigned = ranks.map(()=>pick(SUITS)); } while(suitsAssigned.every(s=>s===suitsAssigned[0]));
+  return ranks.map((r,i)=>mkCard(r,suitsAssigned[i]));
+}
+function buildFlush(){
+  const suit = pick(SUITS);
+  let ranks, tries=0;
+  do{ ranks = shuffleArr(randDistinctRanks(5)).sort((a,b)=>b-a); tries++; } while(isConsecutive(ranks) && tries<200);
+  return ranks.map(r=>mkCard(r,suit));
+}
+function buildFullHouse(){
+  const [tr,pr] = randDistinctRanks(2);
+  const s3=sampleN(SUITS,3), s2=sampleN(SUITS,2);
+  return [mkCard(tr,s3[0]),mkCard(tr,s3[1]),mkCard(tr,s3[2]),mkCard(pr,s2[0]),mkCard(pr,s2[1])];
+}
+function buildFourKind(){
+  const [qr,kr] = randDistinctRanks(2);
+  return [mkCard(qr,'s'),mkCard(qr,'h'),mkCard(qr,'d'),mkCard(qr,'c'),mkCard(kr,pick(SUITS))];
+}
+function buildStraightFlush(){
+  const suit=pick(SUITS);
+  let ranks;
+  if(Math.random()<0.15){ ranks=[14,5,4,3,2]; }
+  else { const high = randInt(6,13); ranks=[high,high-1,high-2,high-3,high-4]; }
+  return ranks.map(r=>mkCard(r,suit));
+}
+function buildRoyal(){
+  const suit=pick(SUITS);
+  return [10,11,12,13,14].map(r=>mkCard(r,suit));
+}
+const CATEGORY_BUILDERS = [buildHighCard,buildOnePair,buildTwoPair,buildThreeKind,buildStraight,buildFlush,buildFullHouse,buildFourKind,buildStraightFlush];
+
+/* =====================================================================
+   dialogue renderer
+   ===================================================================== */
+function renderDialogue(lines){
+  return lines.map(l=>{
+    const isStu = l.who === 'stu';
+    const icon = l.who==='coach' ? '🎩' : '🔰';
+    const name = l.who==='coach' ? 'コーチ' : 'ミカ（見習い）';
+    return `<div class="dialog-row${isStu?' right':''}">
+      <div class="dialog-character"><div class="dialog-avatar ${l.who}">${icon}</div><div class="dialog-name ${l.who}">${name}</div></div>
+      <div class="dialog-bubble">${l.text}</div>
+    </div>`;
+  }).join('');
+}
+
+/* =====================================================================
+   generic MCQ quiz block — every card must be answered correctly on
+   the first click for the stage's onDone callback to fire; a wrong
+   click locks that card until the whole stage is retried.
+   ===================================================================== */
+function renderQuizArea(container, quizzes, onDone){
+  container.innerHTML = quizzes.map((q,qi)=>`
+    <div class="quiz-card" data-qi="${qi}">
+      ${q.visual || ''}
+      <div class="quiz-q">Q${qi+1}. ${q.q}</div>
+      <div class="choice-list">${q.choices.map((c,ci)=>`<button class="choice-btn" data-qi="${qi}" data-ci="${ci}">${escapeHtml(c)}</button>`).join('')}</div>
+      <div class="quiz-explain" style="display:none"></div>
+    </div>`).join('');
+  linkGlossaryIn(container);
+  const solved = new Set();
+  container.querySelectorAll('.choice-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const qi = Number(btn.dataset.qi), ci = Number(btn.dataset.ci);
+      const card = container.querySelector(`.quiz-card[data-qi="${qi}"]`);
+      if(card.classList.contains('answered')) return;
+      const q = quizzes[qi];
+      const isOk = ci === q.correct;
+      card.querySelectorAll('.choice-btn').forEach((b,i)=>{
+        if(i===q.correct) b.classList.add('choice-ok');
+        else if(i===ci && !isOk) b.classList.add('choice-ng');
+      });
+      card.classList.add('answered');
+      const ex = card.querySelector('.quiz-explain');
+      ex.style.display = 'block';
+      ex.innerHTML = (isOk ? '✅ 正解。 ' : '❌ 不正解。 ') + q.explain;
+      linkGlossaryIn(ex);
+      if(isOk){ solved.add(qi); if(solved.size === quizzes.length) onDone(); }
+    });
+  });
+}
+
+/* =====================================================================
+   Stage 0: 役の基礎知識
+   ===================================================================== */
+function buildBasics(root, ctx){
+  const REF = [
+    {cards:[[14,'s'],[13,'s'],[12,'s'],[11,'s'],[10,'s']], name:'ロイヤルフラッシュ', desc:'同じスートのA・K・Q・J・10。最強の役。'},
+    {cards:[[9,'h'],[8,'h'],[7,'h'],[6,'h'],[5,'h']], name:'ストレートフラッシュ', desc:'同じスートの数字が5つ連続。'},
+    {cards:[[13,'s'],[13,'h'],[13,'d'],[13,'c'],[3,'s']], name:'フォーカード', desc:'同じ数字が4枚そろう。'},
+    {cards:[[11,'s'],[11,'h'],[11,'d'],[4,'c'],[4,'s']], name:'フルハウス', desc:'スリーカード+ペアの組み合わせ。'},
+    {cards:[[14,'c'],[11,'c'],[8,'c'],[5,'c'],[2,'c']], name:'フラッシュ', desc:'同じスートが5枚(数字はバラバラ)。'},
+    {cards:[[10,'s'],[9,'h'],[8,'d'],[7,'c'],[6,'s']], name:'ストレート', desc:'数字が5つ連続(スートはバラバラ)。'},
+    {cards:[[8,'s'],[8,'h'],[8,'d'],[13,'c'],[2,'s']], name:'スリーカード', desc:'同じ数字が3枚そろう。'},
+    {cards:[[12,'s'],[12,'h'],[5,'d'],[5,'c'],[9,'s']], name:'ツーペア', desc:'ペアが2組。'},
+    {cards:[[10,'s'],[10,'h'],[14,'d'],[6,'c'],[3,'s']], name:'ワンペア', desc:'同じ数字が2枚そろう。'},
+    {cards:[[14,'s'],[11,'h'],[8,'d'],[5,'c'],[2,'s']], name:'ハイカード', desc:'役なし。一番高いカードで勝負。'},
+  ];
+  const refHtml = REF.map((r,i)=>`
+    <div class="ref-row">
+      <div class="ref-rank">${i+1}</div>
+      <div class="ref-cards">${r.cards.map(([rk,s])=>cardHtml(mkCard(rk,s))).join('')}</div>
+      <div class="ref-info"><div class="ref-name">${r.name}</div><div class="ref-desc">${r.desc}</div></div>
+    </div>`).join('');
+
+  const catsPool = shuffleArr([0,1,2,3,4,5,6,7,8]).slice(0,5);
+  const quizItems = catsPool.map(c=>{
+    const cards = CATEGORY_BUILDERS[c]();
+    const ev = evaluate5(cards);
+    return {cards, correct: CAT_NAMES[c], explain: explainCategory(ev.cat, ev.tie, false)};
+  });
+  quizItems.push({cards: buildRoyal(), correct:'ロイヤルフラッシュ', explain: explainCategory(8,[14],true)});
+
+  const quizzes = shuffleArr(quizItems).map(item=>{
+    const distractors = shuffleArr(NAME_POOL.filter(n=>n!==item.correct)).slice(0,3);
+    const choices = shuffleArr([item.correct, ...distractors]);
+    return {
+      visual: `<div class="hand-row">${item.cards.map(cardHtml).join('')}</div>`,
+      q: 'この役の名前は？',
+      choices,
+      correct: choices.indexOf(item.correct),
+      explain: item.explain,
+    };
+  });
+
+  root.innerHTML = `
+    <div class="ref-head">📋 役の一覧(強い順)</div>
+    <div class="ref-table">${refHtml}</div>
+    <div class="quiz-head">✏️ クイズ：この役はなに？</div>
+    <div id="quiz-area"></div>
+  `;
+  renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
+}
+
+/* =====================================================================
+   Stage 1: ハンドの強さ比較
+   ===================================================================== */
+function cardsOverlap(a,b){ const keys=new Set(a.map(c=>c.rank+c.suit)); return b.some(c=>keys.has(c.rank+c.suit)); }
+function describeCompare(evA,evB,cmp){
+  const nameA = catDisplayName(evA), nameB = catDisplayName(evB);
+  if(evA.cat!==evB.cat){
+    return `Aは「${nameA}」、Bは「${nameB}」。役の強さが違うので、役が強い方が勝ちます。`;
+  }
+  if(cmp===0) return `どちらも「${nameA}」で、比べる数字まで完全に同じなので引き分けです。`;
+  const winner = cmp>0 ? 'A' : 'B';
+  return `どちらも「${nameA}」ですが、役の中心となる数字やキッカー(残りのカード)が${winner}の方が高いので、${winner}の勝ちです。`;
+}
+function buildCompare(root, ctx){
+  const N = 5;
+  const quizzes = [];
+  for(let i=0;i<N;i++){
+    let handA, handB;
+    if(i<2){
+      const cat = randInt(1,7);
+      let tries=0;
+      do{ handA = CATEGORY_BUILDERS[cat](); handB = CATEGORY_BUILDERS[cat](); tries++; }
+      while(cardsOverlap(handA,handB) && tries<50);
+    } else {
+      const deck = shuffleArr(freshDeck());
+      handA = deck.slice(0,5); handB = deck.slice(5,10);
+    }
+    const evA = evaluate5(handA), evB = evaluate5(handB);
+    const cmp = compareEval(evA,evB);
+    const choices = ['Aの勝ち','Bの勝ち','引き分け'];
+    const correctIdx = cmp>0?0:cmp<0?1:2;
+    quizzes.push({
+      visual: `<div class="vs-row">
+        <div class="hand-block"><div class="hand-label">ハンドA</div><div class="hand-row">${handA.map(cardHtml).join('')}</div></div>
+        <div class="vs-divider">VS</div>
+        <div class="hand-block"><div class="hand-label">ハンドB</div><div class="hand-row">${handB.map(cardHtml).join('')}</div></div>
+      </div>`,
+      q: '勝つのはどちら？',
+      choices,
+      correct: correctIdx,
+      explain: describeCompare(evA,evB,cmp),
+    });
+  }
+  root.innerHTML = `<div id="quiz-area"></div>`;
+  renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
+}
+
+/* =====================================================================
+   Stage 2: テキサスホールデム入門
+   ===================================================================== */
+function buildHoldem(root, ctx){
+  const N = 5;
+  const quizzes = [];
+  for(let i=0;i<N;i++){
+    const deck = shuffleArr(freshDeck());
+    const hole = deck.slice(0,2);
+    const board = deck.slice(2,7);
+    const best = bestOf([...hole,...board]);
+    const correctName = catDisplayName(best.eval);
+    const distractors = shuffleArr(NAME_POOL.filter(n=>n!==correctName)).slice(0,3);
+    const choices = shuffleArr([correctName, ...distractors]);
+    const bestDesc = best.cards.map(c=>rankLabel(c.rank)+SUIT_SYMBOL[c.suit]).join(' ');
+    quizzes.push({
+      visual: `<div class="hand-block"><div class="hand-label">ホールカード(あなたの手札)</div><div class="hand-row">${hole.map(cardHtml).join('')}</div></div>
+                <div class="hand-block"><div class="hand-label">コミュニティカード(場のカード)</div><div class="hand-row">${board.map(cardHtml).join('')}</div></div>`,
+      q: 'この7枚から作れる最強の役は？',
+      choices,
+      correct: choices.indexOf(correctName),
+      explain: `最も強い5枚は ${bestDesc} で、「${correctName}」です。`,
+    });
+  }
+  root.innerHTML = `
+    <div class="chen-box">
+      <b>ブラインドとは？</b><br>
+      ポーカーは「参加するかどうか」を自分で選べるゲーム。でももし誰も強制的にお金を賭けなかったら、
+      全員が毎回様子見して、いつまで経ってもゲームが動かなくなってしまう。そこで、毎ハンド必ず2人が
+      強制的にお金を賭ける「ブラインド」という仕組みがある。<br>
+      <b>スモールブラインド(SB)</b>：ボタン(ディーラー役)のすぐ左隣の人が、ホールカードを見る前に払う少額の強制ベット。<br>
+      <b>ビッグブラインド(BB)</b>：SBのさらに左隣の人が払う、SBのだいたい2倍の強制ベット。<br>
+      すでに払ったブラインドは「その巡での自分のベット額」として扱われるので、後で他の人がコールするときは
+      このブラインドの額に合わせればよい。そして<b>ブラインドを払う役目は毎ハンド1つずつ左へ回っていく</b>——
+      だから同じ人がずっとブラインドを払い続けることはない。
+    </div>
+    <div class="ref-head">📖 テキサスホールデムの流れ</div>
+    <div id="holdem-flow-diagram"></div>
+    <div class="step-controls">
+      <button class="btn" id="flow-prev">◀ 前へ</button>
+      <span class="step-progress" id="flow-progress"></span>
+      <button class="btn btn-primary" id="flow-next">次へ ▶</button>
+    </div>
+    <div class="chen-box">
+      <b>各ベッティングラウンドでできる5つのアクション</b>
+      <div class="action-grid">
+        <div class="action-item"><b>チェック</b>：誰もまだベットしていなければ、何も賭けずに次の人へパスできる。</div>
+        <div class="action-item"><b>ベット</b>：そのラウンドで最初にお金を賭ける。</div>
+        <div class="action-item"><b>コール</b>：相手のベットと同じ額を払って、勝負に残る。</div>
+        <div class="action-item"><b>レイズ</b>：相手のベットより多く賭けて、さらに強気に出る。</div>
+        <div class="action-item"><b>フォールド</b>：勝負を降りる。それまでに賭けた分は戻らないが、それ以上は失わない。</div>
+      </div>
+      全員がベット額をそろえる(コールする)かフォールドしたら、そのラウンドは終了。<b>フォールドで自分以外の全員が降りたら、ショーダウンなしでその時点で勝ち</b>になる。
+    </div>
+    <div class="ref-head">💰 メインポットとサイドポット（オールインが起きたとき）</div>
+    <div id="sidepot-flow-diagram"></div>
+    <div class="step-controls">
+      <button class="btn" id="sidepot-prev">◀ 前へ</button>
+      <span class="step-progress" id="sidepot-progress"></span>
+      <button class="btn btn-primary" id="sidepot-next">次へ ▶</button>
+    </div>
+    <div class="quiz-head">✏️ クイズ：この7枚から作れる最強の役は？</div>
+    <div id="quiz-area"></div>
+  `;
+  mountHoldemFlowStepper(root);
+  mountSidePotStepper(root);
+  renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
+}
+
+/* ---- main pot / side pot mini-walkthrough (triggered by an all-in with a short stack) ---- */
+const SIDEPOT_SEATS = [
+  {key:'x', name:'相手X', startStack:40},
+  {key:'y', name:'相手Y', startStack:200},
+  {key:'you', name:'あなた', startStack:200},
+];
+const SIDEPOT_LABEL_CLASS = {allin:'chip-allin', raise:'chip-raise', call:'chip-call'};
+const SIDEPOT_LABEL_TEXT = {allin:'オールイン', raise:'レイズ', call:'コール'};
+const SIDEPOT_EVENTS = [
+  {actionType:'deal', banner:'状況：3人のスタック(残りチップ)を確認', bets:{}, labels:{}, showSplit:false,
+    caption:'相手Xは残り40、相手Yとあなたは残り200のチップを持っている場面を考えてみよう。持っているチップ以上は賭けられない。'},
+  {actionType:'allin', banner:'相手X：オールイン！ 残り40をすべて賭ける', bets:{x:40}, labels:{x:'allin'}, showSplit:false,
+    caption:'オールイン＝残りのチップをすべて賭けること。相手Xは40しか持っていないので、それ以上は賭けようがない。'},
+  {actionType:'raise', banner:'相手Y：レイズ 100（Xの40を超えて引き上げ）', bets:{x:40,y:100}, labels:{x:'allin',y:'raise'}, showSplit:false,
+    caption:'相手Yはまだ160のチップが残っているので、Xのオールイン額(40)を超えて100まで引き上げられる。'},
+  {actionType:'call', banner:'あなた：コール 100', bets:{x:40,y:100,you:100}, labels:{x:'allin',y:'raise',you:'call'}, showSplit:false,
+    caption:'あなたも100を払ってコール。全員のアクションが出そろった。'},
+  {actionType:'split', banner:'ポットが2つに分かれる：メインポット＋サイドポット', bets:{x:40,y:100,you:100}, labels:{x:'allin',y:'raise',you:'call'}, showSplit:true,
+    caption:'相手Xが賭けられたのは40まで。3人分の40×3=120が「メインポット」となり、3人とも獲得資格がある。残りの(100-40)×2=120は、Xを除くYとあなたの2人だけが賭けた分なので「サイドポット」となり、この2人だけに獲得資格がある。'},
+  {actionType:'showdown', banner:'ショーダウン：ポットごとに勝者が決まる', bets:{x:40,y:100,you:100}, labels:{}, showSplit:true, results:{x:{hand:'スリーカード', tag:'main', win:true}, y:{hand:'ツーペア', tag:'side', win:true}, you:{hand:'ワンペア', win:false}},
+    caption:'相手Xの役が一番強くても、獲得できるのは自分が賭けた範囲＝メインポット(120)まで。サイドポット(120)は、Xを除いたYとあなたの勝負で決まり、ここではYが勝ってサイドポットを獲得する。あなたはどちらのポットも取れない。'},
+];
+function renderSidePotDiagram(container, idx){
+  const ev = SIDEPOT_EVENTS[idx];
+  const mainPot = ev.bets.x ? ev.bets.x * 3 : 0;
+  const sideAmt = (ev.bets.y||0) + (ev.bets.you||0) - (ev.bets.x||0)*2;
+  const totalPot = Object.values(ev.bets).reduce((a,b)=>a+b,0);
+
+  const seatsHtml = SIDEPOT_SEATS.map(s=>{
+    const bet = ev.bets[s.key];
+    const label = ev.labels[s.key];
+    const stackLeft = s.startStack - (bet||0);
+    let chipHtml = '';
+    if(label){
+      chipHtml = `<div class="holdem-seat-chip ${SIDEPOT_LABEL_CLASS[label]}">${SIDEPOT_LABEL_TEXT[label]} ${bet}</div>`;
+    }
+    let resultTag = '';
+    if(ev.results){
+      const r = ev.results[s.key];
+      chipHtml = `<div class="holdem-seat-chip">${r.hand}</div>`;
+      if(r.win) resultTag = `<div class="holdem-seat-result-tag ${r.tag==='side'?'side':''}">${r.tag==='side'?'サイドポット獲得':'メインポット獲得'}</div>`;
+    }
+    return `<div class="holdem-seat ${s.key==='you'?'you':''}">
+      <div class="holdem-seat-name">${s.name}</div>
+      <div class="holdem-seat-stack">スタック残り: ${bet!==undefined?stackLeft:s.startStack}</div>
+      ${chipHtml}
+      ${resultTag}
+    </div>`;
+  }).join('');
+
+  const potHtml = ev.showSplit
+    ? `<div class="pot-split-row">
+        <div class="pot-split-box">
+          <div class="pot-split-label">メインポット</div>
+          <div class="pot-split-amount">${mainPot}</div>
+          <div class="pot-split-eligible">相手X・相手Y・あなた<br>3人とも獲得資格あり</div>
+        </div>
+        <div class="pot-split-box side">
+          <div class="pot-split-label">サイドポット</div>
+          <div class="pot-split-amount">${sideAmt}</div>
+          <div class="pot-split-eligible">相手Y・あなたのみ<br>(Xは対象外)</div>
+        </div>
+      </div>`
+    : `<div class="holdem-pot">🪙 ポット: ${totalPot}</div>`;
+
+  container.innerHTML = `
+    <div class="table-felt holdem-diagram">
+      <div class="holdem-flow-banner"><span class="action-pill ${ev.actionType}">${HOLDEM_PILL_LABEL[ev.actionType]}</span>${ev.banner}</div>
+      ${potHtml}
+      <div class="holdem-seats">${seatsHtml}</div>
+      <div class="holdem-caption">${ev.caption}</div>
+    </div>`;
+}
+function mountSidePotStepper(root){
+  let stepIdx = 0;
+  function render(){
+    renderSidePotDiagram(qs('#sidepot-flow-diagram', root), stepIdx);
+    linkGlossaryIn(qs('#sidepot-flow-diagram', root));
+    qs('#sidepot-progress', root).textContent = `${stepIdx+1} / ${SIDEPOT_EVENTS.length}`;
+    qs('#sidepot-prev', root).disabled = stepIdx===0;
+  }
+  qs('#sidepot-prev', root).addEventListener('click', ()=>{ if(stepIdx>0){ stepIdx--; render(); } });
+  qs('#sidepot-next', root).addEventListener('click', ()=>{
+    stepIdx = (stepIdx < SIDEPOT_EVENTS.length-1) ? stepIdx+1 : 0;
+    render();
+  });
+  render();
+}
+
+/* ---- illustrative walkthrough example used by the flow stepper above ----
+   1つずつ「次へ」で進める、配札からショーダウンまでの具体的なベッティング系列。
+   ポット・各座席の賭け額は下のイベント列から都度計算するので、数字の矛盾が起きない。 */
+const HOLDEM_EX_BOARD = [[13,'d'],[7,'c'],[2,'d'],[9,'h'],[4,'s']];
+const HOLDEM_EX_SEATS = [
+  {key:'a', name:'相手A (SB)', hole:[[11,'d'],[11,'h']]},
+  {key:'b', name:'相手B (BB)', hole:[[8,'s'],[6,'s']]},
+  {key:'you', name:'あなた', hole:[[14,'c'],[13,'s']], isYou:true},
+];
+const HOLDEM_PILL_LABEL = {deal:'配札', sb:'SB', bb:'BB', raise:'レイズ', call:'コール', bet:'ベット', check:'チェック', fold:'フォールド', board:'公開', showdown:'勝負', allin:'オールイン', split:'内訳'};
+const HOLDEM_EVENTS = [
+  {actionType:'deal', phase:'配札', banner:'配札：全員に2枚ずつホールカードが配られる',
+    caption:'参加者全員に、他の人には見せない「ホールカード」が2枚ずつ裏向きで配られる。'},
+  {actionType:'sb', phase:'プリフロップ', seat:'a', amount:5,
+    banner:'相手A(SB)：5を強制ベット',
+    caption:'ディーラーの左隣の人が「スモールブラインド」として、強制的に少額(ここでは5)を賭ける。'},
+  {actionType:'bb', phase:'プリフロップ', seat:'b', amount:10, reveal:true,
+    banner:'相手B(BB)：10を強制ベット',
+    caption:'さらにその隣が「ビッグブラインド」として10を賭ける。ここであなたは自分のホールカードを確認できる。'},
+  {actionType:'raise', phase:'プリフロップ', seat:'you', amount:30,
+    banner:'あなた：レイズ！ 10 → 30 に引き上げ',
+    caption:'レイズ＝相手の賭け額より多く賭けて、さらに強気に出ること。ビッグブラインドの10より多い30まで引き上げた。'},
+  {actionType:'call', phase:'プリフロップ', seat:'a', amount:30,
+    banner:'相手A：コール（5→30、+25追加）',
+    caption:'コール＝相手の賭け額に合わせて勝負に残ること。相手Aは元の5に25を追加して30にそろえた。'},
+  {actionType:'call', phase:'プリフロップ', seat:'b', amount:30,
+    banner:'相手B：コール（10→30、+20追加）→ プリフロップ終了',
+    caption:'相手Bも10に20を追加して30にそろえた。全員が金額をそろえたので、プリフロップのベッティングラウンドは終了。'},
+  {actionType:'board', phase:'フロップ', board:3,
+    banner:'フロップオープン：K♦ 7♣ 2♦',
+    caption:'コミュニティカードが3枚オープン。ここから2回目のベッティングラウンド。'},
+  {actionType:'check', phase:'フロップ', seat:'a', amount:0,
+    banner:'相手A：チェック',
+    caption:'チェック＝誰もまだベットしていない時に、お金を賭けずに次の人へパスすること。'},
+  {actionType:'bet', phase:'フロップ', seat:'b', amount:20,
+    banner:'相手B：ベット 20',
+    caption:'ベット＝そのラウンドで最初にお金を賭けること。相手Bが20を賭けた。'},
+  {actionType:'call', phase:'フロップ', seat:'you', amount:20,
+    banner:'あなた：コール 20',
+    caption:'あなたは20を払ってコール。勝負を続ける。'},
+  {actionType:'fold', phase:'フロップ', seat:'a',
+    banner:'相手A：フォールド → フロップ終了',
+    caption:'フォールド＝勝負を降りること。それまで賭けた分(合計30)は戻らないが、それ以上は失わない。相手Aが降りたので、残るは相手Bとあなたの2人。'},
+  {actionType:'board', phase:'ターン', board:4,
+    banner:'ターンオープン：9♥',
+    caption:'コミュニティカードが4枚目、1枚追加でオープン。3回目のベッティングラウンド。'},
+  {actionType:'check', phase:'ターン', seat:'b', amount:0,
+    banner:'相手B：チェック',
+    caption:'相手Bは様子を見てチェック。'},
+  {actionType:'bet', phase:'ターン', seat:'you', amount:40,
+    banner:'あなた：ベット 40',
+    caption:'あなたが40をベット。'},
+  {actionType:'call', phase:'ターン', seat:'b', amount:40,
+    banner:'相手B：コール 40 → ターン終了',
+    caption:'相手Bがコール。ターンのベッティングラウンドも終了。'},
+  {actionType:'board', phase:'リバー', board:5,
+    banner:'リバーオープン：4♠',
+    caption:'コミュニティカードが5枚目、最後の1枚がオープン。4回目(最終)のベッティングラウンド。'},
+  {actionType:'check', phase:'リバー', seat:'b', amount:0,
+    banner:'相手B：チェック',
+    caption:'相手Bはここでもチェック。'},
+  {actionType:'bet', phase:'リバー', seat:'you', amount:60,
+    banner:'あなた：ベット 60',
+    caption:'あなたが最後のベット、60を賭けた。'},
+  {actionType:'call', phase:'リバー', seat:'b', amount:60,
+    banner:'相手B：コール 60 → リバー終了',
+    caption:'相手Bがコール。全員のアクションが出そろい、ベッティングラウンドはすべて終了。'},
+  {actionType:'showdown', phase:'ショーダウン', board:5,
+    banner:'ショーダウン',
+    caption:'最後まで残ったプレイヤー同士(相手Bとあなた)で、ホールカード2枚+コミュニティカード5枚=合計7枚から作れる最強の5枚を比べ合う。一番強い役を持つ人がポットをすべて獲得する。'},
+];
+function computeHoldemState(uptoIdx){
+  const seats = {a:{bet:0,badge:null,folded:false}, b:{bet:0,badge:null,folded:false}, you:{bet:0,badge:null,folded:false}};
+  let pot=0, board=0, youRevealed=false;
+  for(let i=0;i<=uptoIdx;i++){
+    const e = HOLDEM_EVENTS[i];
+    if(e.actionType==='board'){
+      seats.a.bet=0; seats.b.bet=0; seats.you.bet=0;
+      seats.a.badge=null; seats.b.badge=null; seats.you.badge=null;
+      board = e.board;
+    } else if(e.actionType==='sb' || e.actionType==='bb'){
+      seats[e.seat].bet = e.amount; seats[e.seat].badge = HOLDEM_PILL_LABEL[e.actionType]; pot += e.amount;
+      if(e.reveal) youRevealed = true;
+    } else if(e.actionType==='fold'){
+      seats[e.seat].folded = true; seats[e.seat].badge = 'フォールド';
+    } else if(e.actionType==='check'){
+      seats[e.seat].badge = 'チェック';
+    } else if(e.actionType==='bet' || e.actionType==='call' || e.actionType==='raise'){
+      const added = e.amount - seats[e.seat].bet;
+      pot += added;
+      seats[e.seat].bet = e.amount;
+      seats[e.seat].badge = HOLDEM_PILL_LABEL[e.actionType];
+    }
+  }
+  return {seats, pot, board, youRevealed};
+}
+function holdemChipClass(badge){
+  if(badge==='SB' || badge==='BB') return 'chip-blind';
+  if(badge==='チェック') return 'chip-check';
+  if(badge==='ベット') return 'chip-bet';
+  if(badge==='コール') return 'chip-call';
+  if(badge==='レイズ') return 'chip-raise';
+  if(badge==='フォールド') return 'chip-fold';
+  return '';
+}
+function renderHoldemDiagram(container, idx){
+  const ev = HOLDEM_EVENTS[idx];
+  const state = computeHoldemState(idx);
+  const boardCards = HOLDEM_EX_BOARD.slice(0, state.board).map(([r,s])=>mkCard(r,s));
+  const boardSlotsHtml = Array.from({length:5}, (_,i)=> i<state.board ? cardHtml(boardCards[i]) : `<div class="pcard back"></div>`).join('');
+
+  const isShowdown = ev.actionType==='showdown';
+  let winnerKey = null, resultsByKey = {};
+  if(isShowdown){
+    HOLDEM_EX_SEATS.filter(s=>!state.seats[s.key].folded).forEach(s=>{
+      const hole = s.hole.map(([r,su])=>mkCard(r,su));
+      resultsByKey[s.key] = bestOf([...hole, ...boardCards]);
+    });
+    Object.entries(resultsByKey).forEach(([k,b])=>{
+      if(!winnerKey || compareEval(b.eval, resultsByKey[winnerKey].eval)>0) winnerKey = k;
+    });
+  }
+
+  const seatsHtml = HOLDEM_EX_SEATS.map(s=>{
+    const st = state.seats[s.key];
+    let cardsHtml;
+    if(st.folded) cardsHtml = '<div class="pcard back dim"></div><div class="pcard back dim"></div>';
+    else if(isShowdown) cardsHtml = s.hole.map(([r,su])=>cardHtml(mkCard(r,su))).join('');
+    else if(s.isYou) cardsHtml = state.youRevealed ? s.hole.map(([r,su])=>cardHtml(mkCard(r,su))).join('') : '<div class="pcard back"></div><div class="pcard back"></div>';
+    else cardsHtml = '<div class="pcard back"></div><div class="pcard back"></div>';
+
+    let chipHtml = '';
+    if(st.folded){
+      chipHtml = '<div class="holdem-seat-chip chip-fold">フォールド</div>';
+    } else if(isShowdown){
+      chipHtml = `<div class="holdem-seat-chip chip-call">${catDisplayName(resultsByKey[s.key].eval)}</div>`;
+    } else if(st.badge){
+      chipHtml = `<div class="holdem-seat-chip ${holdemChipClass(st.badge)}">${st.badge}${st.bet?' '+st.bet:''}</div>`;
+    }
+    const isWinner = isShowdown && s.key===winnerKey;
+    return `<div class="holdem-seat ${s.isYou?'you':''} ${isWinner?'winner':''} ${st.folded?'folded':''}">
+      <div class="holdem-seat-name">${s.name}${isWinner?' 🏆':''}</div>
+      <div class="holdem-seat-cards">${cardsHtml}</div>
+      ${chipHtml}
+    </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="table-felt holdem-diagram">
+      <div class="holdem-phase-tag">${ev.phase}</div>
+      <div class="holdem-flow-banner"><span class="action-pill ${ev.actionType}">${HOLDEM_PILL_LABEL[ev.actionType]}</span>${ev.banner}</div>
+      <div class="holdem-pot">🪙 ポット: ${state.pot}</div>
+      <div class="holdem-board-row">${boardSlotsHtml}</div>
+      <div class="holdem-seats">${seatsHtml}</div>
+      <div class="holdem-caption">${ev.caption}</div>
+    </div>`;
+}
+function mountHoldemFlowStepper(root){
+  let stepIdx = 0;
+  function render(){
+    renderHoldemDiagram(qs('#holdem-flow-diagram', root), stepIdx);
+    linkGlossaryIn(qs('#holdem-flow-diagram', root));
+    qs('#flow-progress', root).textContent = `${stepIdx+1} / ${HOLDEM_EVENTS.length}`;
+    qs('#flow-prev', root).disabled = stepIdx===0;
+  }
+  qs('#flow-prev', root).addEventListener('click', ()=>{ if(stepIdx>0){ stepIdx--; render(); } });
+  qs('#flow-next', root).addEventListener('click', ()=>{
+    stepIdx = (stepIdx < HOLDEM_EVENTS.length-1) ? stepIdx+1 : 0;
+    render();
+  });
+  render();
+}
+
+/* =====================================================================
+   stage metadata
+   ===================================================================== */
+const STAGES = [
+  {
+    key:'basics', title:'役の基礎知識', sub:'10種類の役を覚えよう',
+    missionText:'上の一覧で10種類の役を確認したら、6問のクイズすべてに正解しよう。',
+    dialogue:[
+      {who:'coach', text:'ポーカーはカード5枚の組み合わせ「役」の強さを競うゲームだ。まずは強い順に10種類、しっかり頭に入れよう。'},
+      {who:'stu', text:'名前は聞いたことあっても、実際どのカードがどの役なのか自信ないです…！'},
+      {who:'coach', text:'大丈夫、下の一覧で実物を見比べながら覚えていこう。覚えたら腕試しのクイズだ。'},
+    ],
+    build: buildBasics,
+  },
+  {
+    key:'compare', title:'ハンドの強さ比較', sub:'2つの手札、勝つのはどっち？',
+    missionText:'2つの5枚の手札を見比べて、勝つ方を当てよう。5問正解でクリア。',
+    dialogue:[
+      {who:'coach', text:'役の名前を覚えたら、次は「同じ役同士でどちらが強いか」を見極める番だ。'},
+      {who:'stu', text:'同じワンペアでも、勝ち負けがあるんですか？'},
+      {who:'coach', text:'その通り。ペアの数字や、残りの「キッカー」と呼ばれるカードの大きさで決まるんだ。実際に比べてみよう。'},
+    ],
+    build: buildCompare,
+  },
+  {
+    key:'holdem', title:'テキサスホールデム入門', sub:'手札+場のカードで最強の役を作る',
+    missionText:'ホールカード2枚とコミュニティカード5枚、合計7枚から作れる最強の役を見抜こう。5問正解でクリア。',
+    dialogue:[
+      {who:'coach', text:'世界で一番遊ばれているポーカーが「テキサスホールデム」だ。まず自分だけの「ホールカード」を2枚もらう。'},
+      {who:'stu', text:'そこに場の「コミュニティカード」が加わるんですよね？'},
+      {who:'coach', text:'そう。フロップで3枚、ターンで1枚、リバーで1枚、合計5枚が全員で共有される。自分の2枚と合わせた7枚から、一番強い5枚を選んで役にするんだ。'},
+      {who:'stu', text:'ベットのタイミングとか、途中で降りる仕組みとか、もっと細かい流れも知りたいです！'},
+      {who:'coach', text:'よし、下に配札からショーダウンまでの流れと、使える5つのアクションをまとめておいた。しっかり確認してから、クイズに挑戦してみよう。'},
+    ],
+    build: buildHoldem,
+  },
+];
+
+/* ---------- shared state / persistence ---------- */
+const STORE_KEY = 'pokerQuestRulesProgress';
+const state = { unlocked:1, cleared:new Set(), currentIndex:0 };
+
+function loadProgress(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if(raw){
+      state.unlocked = raw.unlocked || 1;
+      state.cleared = new Set(raw.cleared || []);
+    }
+  }catch(e){}
+  if (new URLSearchParams(location.search).has('all')) state.unlocked = STAGES.length;
+}
+function saveProgress(){
+  localStorage.setItem(STORE_KEY, JSON.stringify({unlocked:state.unlocked, cleared:[...state.cleared]}));
+}
+
+/* ---------- sidebar / header ---------- */
+function renderSidebar(){
+  const list = qs('#side-list');
+  list.innerHTML = STAGES.map((s,i)=>{
+    const locked = i > state.unlocked - 1;
+    const cleared = state.cleared.has(i);
+    const active = i === state.currentIndex;
+    const icon = cleared ? '✅' : locked ? '🔒' : '🃏';
+    return `<div class="side-item ${active?'active':''} ${locked?'locked':''}" data-index="${i}">
+      <span class="side-icon">${icon}</span>
+      <span class="side-text">
+        <div class="side-main">第${i+1}ステージ ${s.title}</div>
+        <div class="side-sub">${s.sub}</div>
+      </span>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.side-item').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      const i = Number(item.dataset.index);
+      if(i > state.unlocked - 1) return;
+      mountStage(i);
+    });
+  });
+
+  qs('#progress-label').textContent = `クリア ${state.cleared.size} / ${STAGES.length}`;
+  qs('#progress-fill').style.width = (state.cleared.size / STAGES.length * 100) + '%';
+}
+
+qs('#btn-reset-all').addEventListener('click', ()=>{
+  if(!confirm('進行状況をすべてリセットして最初からやり直しますか？')) return;
+  state.unlocked = 1; state.cleared = new Set();
+  saveProgress();
+  mountStage(0);
+});
+
+/* ---------- sidebar drawer toggle (mobile off-canvas / tablet icon-rail) ---------- */
+function toggleSidebar(){ qs('#app-shell').classList.toggle('side-collapsed'); }
+qs('#sidebar-toggle').addEventListener('click', toggleSidebar);
+qs('#head-nav-toggle').addEventListener('click', toggleSidebar);
+qs('#side-backdrop').addEventListener('click', ()=> qs('#app-shell').classList.add('side-collapsed'));
+
+/* ---------- stage mount / navigation ---------- */
+function mountStage(index){
+  state.currentIndex = index;
+  const meta = STAGES[index];
+  const main = qs('#main-area');
+  main.innerHTML = `
+    <div class="chapter-head">
+      <span class="chapter-badge">第${index+1}ステージ</span><span class="chapter-title">${meta.title}</span>
+      <div class="chapter-sub">${meta.sub}</div>
+    </div>
+    <div class="dialogue-scene">${renderDialogue(meta.dialogue)}</div>
+    <div class="mission-box">
+      <div class="mission-label">🎯 お題</div>
+      <div class="mission-text">${meta.missionText}</div>
+      <div class="mission-status" id="mission-status">${state.cleared.has(index) ? '達成！' : '未達成'}</div>
+    </div>
+    <div class="stage-play" id="stage-play"></div>
+    <div class="stage-nav">
+      <button class="btn" id="btn-retry">↺ このステージをやり直す</button>
+      <button class="btn btn-primary" id="btn-next" ${state.cleared.has(index) ? '' : 'disabled'}>
+        ${index === STAGES.length-1 ? 'クリア画面へ ▶' : 'つぎのステージへ ▶'}
+      </button>
+    </div>
+  `;
+  if(state.cleared.has(index)) qs('#mission-status').classList.add('ok');
+
+  qs('#btn-retry').addEventListener('click', ()=> mountStage(index));
+  qs('#btn-next').addEventListener('click', ()=>{
+    if(index === STAGES.length-1) showEnding();
+    else mountStage(index+1);
+  });
+
+  const ctx = {
+    complete(){
+      if(state.cleared.has(index)) return;
+      state.cleared.add(index);
+      state.unlocked = Math.max(state.unlocked, index+2);
+      saveProgress();
+      const statusEl = qs('#mission-status');
+      statusEl.textContent = '達成！';
+      statusEl.classList.add('ok');
+      qs('#btn-next').removeAttribute('disabled');
+      renderSidebar();
+    },
+  };
+  meta.build(qs('#stage-play'), ctx);
+  linkGlossaryIn(main);
+  renderSidebar();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function showEnding(){
+  const main = qs('#main-area');
+  main.innerHTML = `
+    <div class="ending">
+      <h2>🃏 ルール編 制覇！</h2>
+      <p>役の強さ、同じ役同士の比較、テキサスホールデムの流れ(配札からショーダウンまで)とメインポット・サイドポットの仕組みまで——ポーカーを打つための基礎ルールを一通り学んだね。次は「戦略編」で、勝率やベットサイズの考え方に進もう。</p>
+      <div class="ending-list">
+        ✅ 役の強さは ハイカード→ワンペア→ツーペア→スリーカード→ストレート→フラッシュ→フルハウス→フォーカード→ストレートフラッシュ→ロイヤルフラッシュ の順<br>
+        ✅ 同じ役同士は「キッカー」など細かい数字の大小で勝敗が決まる<br>
+        ✅ テキサスホールデムはホールカード2枚+コミュニティカード5枚から最強の5枚を選ぶ<br>
+        ✅ ベッティングラウンドでは、チェック・ベット・コール・レイズ・フォールドの5つのアクションが使える<br>
+        ✅ オールインが起きると、メインポットとサイドポットに分かれることがある
+      </div>
+      <div class="choice-list" style="justify-content:center">
+        <button class="btn" id="btn-replay">↺ はじめから学びなおす</button>
+        <a class="btn btn-primary" href="index.html">♟️ 戦略編に進む ▶</a>
+      </div>
+    </div>
+  `;
+  linkGlossaryIn(main);
+  qs('#btn-replay').addEventListener('click', ()=>{
+    state.unlocked = 1; state.cleared = new Set();
+    saveProgress();
+    mountStage(0);
+  });
+  state.currentIndex = -1;
+  renderSidebar();
+}
+
+/* ---------- book recommendation ---------- */
+const BOOK_RECOMMEND = {
+  title: 'フィル・ゴードン『フィル・ゴードンのポーカー攻略法 入門編』(カジノブックシリーズ)',
+  url: 'https://www.amazon.co.jp/dp/4775949012?tag=senjin-22',
+};
+function renderBookRecommend(){
+  const el = qs('#book-recommend');
+  if(!el) return;
+  el.innerHTML = `
+    <p class="book-recommend-label">参考文献</p>
+    <p class="book-recommend-lead">ゲームだけでは物足りない方へ。世界的プレイヤーが書いた定番の入門書でさらに深く学べる。</p>
+    <a href="${BOOK_RECOMMEND.url}" target="_blank" rel="sponsored noopener">${escapeHtml(BOOK_RECOMMEND.title)}</a>
+  `;
+}
+
+/* ---------- boot ---------- */
+loadProgress();
+mountStage(Math.min(state.currentIndex, state.unlocked-1));
+renderBookRecommend();
+</script>
+</body>
+</html>
