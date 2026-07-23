@@ -781,6 +781,7 @@ function buildBasics(root, ctx){
   root.innerHTML = `
     <div class="ref-head">📋 役の一覧(強い順)</div>
     <div class="ref-table">${refHtml}</div>
+    ${ctx.missionBoxHtml}
     <div class="quiz-head">✏️ クイズ：この役はなに？</div>
     <div id="quiz-area"></div>
   `;
@@ -843,7 +844,7 @@ function buildCompare(root, ctx){
       explain: describeCompare(evA,evB,cmp),
     });
   }
-  root.innerHTML = `<div id="quiz-area"></div>`;
+  root.innerHTML = `${ctx.missionBoxHtml}<div class="quiz-head">✏️ クイズ：勝つのはどちら？</div><div id="quiz-area"></div>`;
   renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
 }
 
@@ -908,6 +909,7 @@ function buildHoldem(root, ctx){
       <span class="step-progress" id="sidepot-progress"></span>
       <button class="btn btn-primary" id="sidepot-next">次へ ▶</button>
     </div>
+    ${ctx.missionBoxHtml}
     <div class="quiz-head">✏️ クイズ：この7枚から作れる最強の役は？</div>
     <div id="quiz-area"></div>
   `;
@@ -1276,6 +1278,13 @@ qs('#head-nav-toggle').addEventListener('click', toggleSidebar);
 qs('#side-backdrop').addEventListener('click', ()=> qs('#app-shell').classList.add('side-collapsed'));
 
 /* ---------- stage mount / navigation ---------- */
+function missionBoxHtml(meta, index){
+  return `<div class="mission-box">
+      <div class="mission-label">🎯 お題</div>
+      <div class="mission-text">${meta.missionText}</div>
+      <div class="mission-status" id="mission-status">${state.cleared.has(index) ? '達成！' : '未達成'}</div>
+    </div>`;
+}
 function mountStage(index){
   state.currentIndex = index;
   const meta = STAGES[index];
@@ -1286,11 +1295,6 @@ function mountStage(index){
       <div class="chapter-sub">${meta.sub}</div>
     </div>
     <div class="dialogue-scene">${renderDialogue(meta.dialogue)}</div>
-    <div class="mission-box">
-      <div class="mission-label">🎯 お題</div>
-      <div class="mission-text">${meta.missionText}</div>
-      <div class="mission-status" id="mission-status">${state.cleared.has(index) ? '達成！' : '未達成'}</div>
-    </div>
     <div class="stage-play" id="stage-play"></div>
     <div class="stage-nav">
       <button class="btn" id="btn-retry">↺ このステージをやり直す</button>
@@ -1299,7 +1303,6 @@ function mountStage(index){
       </button>
     </div>
   `;
-  if(state.cleared.has(index)) qs('#mission-status').classList.add('ok');
 
   qs('#btn-retry').addEventListener('click', ()=> mountStage(index));
   qs('#btn-next').addEventListener('click', ()=>{
@@ -1308,6 +1311,7 @@ function mountStage(index){
   });
 
   const ctx = {
+    missionBoxHtml: missionBoxHtml(meta, index),
     complete(){
       if(state.cleared.has(index)) return;
       state.cleared.add(index);
@@ -1321,6 +1325,7 @@ function mountStage(index){
     },
   };
   meta.build(qs('#stage-play'), ctx);
+  if(state.cleared.has(index)) qs('#mission-status')?.classList.add('ok');
   linkGlossaryIn(main);
   renderSidebar();
   window.scrollTo({top:0, behavior:'smooth'});

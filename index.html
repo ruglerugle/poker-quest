@@ -699,6 +699,8 @@ function buildStarting(root, ctx){
       ⑤ ギャップ1以下(連続または1つ飛び)かつ高い方がQ以下ならストレートが狙いやすいので+1点<br>
       → <b>10点以上=プレミアム／7点以上=強い／5点以上=普通／それ未満=弱い</b>
     </div>
+    ${ctx.missionBoxHtml}
+    <div class="quiz-head">✏️ クイズ：ハンドの強さを判定しよう</div>
     <div id="quiz-area"></div>
   `;
   renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
@@ -802,6 +804,7 @@ function buildPosition(root, ctx){
       <div class="pos-row head"><div>ポジション</div><div>プリフロップ</div><div>フロップ以降</div><div>速さ</div></div>
       ${posTableHtml}
     </div>
+    ${ctx.missionBoxHtml}
     <div class="quiz-head">✏️ クイズ：ポジションの理解を確認しよう</div>
     <div id="quiz-area"></div>
   `;
@@ -852,7 +855,7 @@ function buildOuts(root, ctx){
       explain: `${sc.outs}枚 × ${sc.streets===2?'4':'2'} ≈ ${pct}%(4-2ルールによる概算値)。`,
     });
   });
-  root.innerHTML = `<div id="quiz-area"></div>`;
+  root.innerHTML = `${ctx.missionBoxHtml}<div class="quiz-head">✏️ クイズ：アウツとオッズを計算しよう</div><div id="quiz-area"></div>`;
   renderQuizArea(qs('#quiz-area', root), shuffleArr(quizzes), ctx.complete);
 }
 
@@ -892,6 +895,8 @@ function buildPotOdds(root, ctx){
       必要勝率 = 相手のベット ÷ (ポット + 相手のベット) × 100<br>
       → この必要勝率より、自分の勝率(エクイティ)が<b>高ければコール</b>、<b>低ければフォールド</b>が基本。
     </div>
+    ${ctx.missionBoxHtml}
+    <div class="quiz-head">✏️ クイズ：コールかフォールドか判断しよう</div>
     <div id="quiz-area"></div>
   `;
   renderQuizArea(qs('#quiz-area', root), quizzes, ctx.complete);
@@ -956,6 +961,7 @@ function buildImpliedOdds(root, ctx){
       50/(100+50+100)≈<b>20%</b>まで下がる。勝率30%のドローなら、普通のポットオッズでは<b>フォールド</b>だったのに、
       インプライドオッズで考えると<b>コール</b>に変わる。
     </div>
+    ${ctx.missionBoxHtml}
     <div class="quiz-head">✏️ クイズ：インプライドオッズで判断しよう</div>
     <div id="quiz-area"></div>
   `;
@@ -1019,6 +1025,7 @@ function buildRange(root, ctx){
       アーリーポジションなら<b>プレミアム＋強い</b>だけ、レイトポジションなら<b>普通クラスまで</b>広げる、というように。
       相手の行動(どのポジションから参加してきたか、ベットしたか)を積み重ねるほど、このレンジはどんどん絞り込まれていく。
     </div>
+    ${ctx.missionBoxHtml}
     <div class="quiz-head">✏️ クイズ：レンジ思考を確認しよう</div>
     <div id="quiz-area"></div>
   `;
@@ -1080,6 +1087,7 @@ function buildBlockers(root, ctx){
       残っているのは3通りだけ——つまり<b>相手がAAを持っている可能性は、もとの半分に減った</b>。
       このように相手の組み合わせを減らすカードを<b>ブロッカー</b>と呼ぶ。
     </div>
+    ${ctx.missionBoxHtml}
     <div class="quiz-head">✏️ クイズ：ブロッカーの考え方を確認しよう</div>
     <div id="quiz-area"></div>
   `;
@@ -1157,6 +1165,7 @@ function buildBetSizing(root, ctx){
       <b>ベットサイズを変えると、必要なフォールド率も変わる</b><br>
       小さいベットほど、少しの回数フォールドしてもらえるだけで割に合う。大きいベットほど、たくさんフォールドしてもらわないと割に合わない——その代わり、フォールドしてもらえた時に獲得できる金額も大きくなる。
     </div>
+    ${ctx.missionBoxHtml}
     <div class="quiz-head">✏️ クイズ：ベットサイジングを計算してみよう</div>
     <div id="quiz-area"></div>
   `;
@@ -1220,6 +1229,7 @@ function buildBoardTexture(root, ctx){
       <b>ウェットな盤面</b>では相手のレンジにもドローが絡みやすくなるので、ベットの回数を絞ったり、
       サイズを大きくしてドローに正しい対価を払わせたりする必要がある。
     </div>
+    ${ctx.missionBoxHtml}
     <div class="quiz-head">✏️ クイズ：盤面を読んでみよう</div>
     <div id="quiz-area"></div>
   `;
@@ -1247,6 +1257,7 @@ function buildFinal(root, ctx){
       const shownBoard = currentBoard();
       const madeBest = bestOf([...playerHole, ...shownBoard]);
       root.innerHTML = `
+        ${ctx.missionBoxHtml}
         <div class="table-felt">
           <div class="pot-label">🪙 ポット: 100 ／ ハンド ${handIndex+1} / ${TOTAL_HANDS}</div>
           <div class="hand-block"><div class="hand-label">あなたのホールカード</div><div class="hand-row">${playerHole.map(cardHtml).join('')}</div></div>
@@ -1271,6 +1282,7 @@ function buildFinal(root, ctx){
       const cmp = compareEval(pBest.eval, cBest.eval);
       const outcome = cmp>0 ? 'win' : cmp<0 ? 'lose' : 'tie';
       root.innerHTML = `
+        ${ctx.missionBoxHtml}
         <div class="table-felt">
           <div class="pot-label">🪙 ショウダウン ／ ハンド ${handIndex+1} / ${TOTAL_HANDS}</div>
           <div class="hand-block"><div class="hand-label">あなたのホールカード</div><div class="hand-row">${playerHole.map(cardHtml).join('')}</div></div>
@@ -1300,6 +1312,7 @@ function buildFinal(root, ctx){
     const ties = results.filter(r=>r==='tie').length;
     const folds = results.filter(r=>r==='fold').length;
     root.innerHTML = `
+      ${ctx.missionBoxHtml}
       <div class="table-felt">
         <div class="pot-label">🏁 全${TOTAL_HANDS}ハンド終了</div>
         <div class="made-hand">勝ち ${wins} ／ 負け ${loses} ／ 引き分け ${ties} ／ フォールド ${folds}</div>
@@ -1481,6 +1494,13 @@ qs('#head-nav-toggle').addEventListener('click', toggleSidebar);
 qs('#side-backdrop').addEventListener('click', ()=> qs('#app-shell').classList.add('side-collapsed'));
 
 /* ---------- stage mount / navigation ---------- */
+function missionBoxHtml(meta, index){
+  return `<div class="mission-box">
+      <div class="mission-label">🎯 お題</div>
+      <div class="mission-text">${meta.missionText}</div>
+      <div class="mission-status" id="mission-status">${state.cleared.has(index) ? '達成！' : '未達成'}</div>
+    </div>`;
+}
 function mountStage(index){
   state.currentIndex = index;
   const meta = STAGES[index];
@@ -1491,11 +1511,6 @@ function mountStage(index){
       <div class="chapter-sub">${meta.sub}</div>
     </div>
     <div class="dialogue-scene">${renderDialogue(meta.dialogue)}</div>
-    <div class="mission-box">
-      <div class="mission-label">🎯 お題</div>
-      <div class="mission-text">${meta.missionText}</div>
-      <div class="mission-status" id="mission-status">${state.cleared.has(index) ? '達成！' : '未達成'}</div>
-    </div>
     <div class="stage-play" id="stage-play"></div>
     <div class="stage-nav">
       <button class="btn" id="btn-retry">↺ このステージをやり直す</button>
@@ -1504,7 +1519,6 @@ function mountStage(index){
       </button>
     </div>
   `;
-  if(state.cleared.has(index)) qs('#mission-status').classList.add('ok');
 
   qs('#btn-retry').addEventListener('click', ()=> mountStage(index));
   qs('#btn-next').addEventListener('click', ()=>{
@@ -1513,6 +1527,7 @@ function mountStage(index){
   });
 
   const ctx = {
+    missionBoxHtml: missionBoxHtml(meta, index),
     complete(){
       if(state.cleared.has(index)) return;
       state.cleared.add(index);
@@ -1526,6 +1541,7 @@ function mountStage(index){
     },
   };
   meta.build(qs('#stage-play'), ctx);
+  if(state.cleared.has(index)) qs('#mission-status')?.classList.add('ok');
   linkGlossaryIn(main);
   renderSidebar();
   window.scrollTo({top:0, behavior:'smooth'});
