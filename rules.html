@@ -791,6 +791,7 @@ function buildBasics(root, ctx){
    Stage 1: ハンドの強さ比較
    ===================================================================== */
 function cardsOverlap(a,b){ const keys=new Set(a.map(c=>c.rank+c.suit)); return b.some(c=>keys.has(c.rank+c.suit)); }
+const COMPARE_CORE_LEN = {0:0, 1:1, 2:2, 3:1, 4:1, 5:0, 6:2, 7:1, 8:1};
 function describeCompare(evA,evB,cmp){
   const nameA = catDisplayName(evA), nameB = catDisplayName(evB);
   if(evA.cat!==evB.cat){
@@ -798,7 +799,19 @@ function describeCompare(evA,evB,cmp){
   }
   if(cmp===0) return `どちらも「${nameA}」で、比べる数字まで完全に同じなので引き分けです。`;
   const winner = cmp>0 ? 'A' : 'B';
-  return `どちらも「${nameA}」ですが、役の中心となる数字やキッカー(残りのカード)が${winner}の方が高いので、${winner}の勝ちです。`;
+  const coreLen = COMPARE_CORE_LEN[evA.cat] || 0;
+  if(coreLen===0){
+    return `どちらも「${nameA}」ですが、カードを大きい順に比べていくと${winner}の方が高いので、${winner}の勝ちです。`;
+  }
+  const maxLen = Math.max(evA.tie.length, evB.tie.length);
+  let diffIdx = -1;
+  for(let i=0;i<maxLen;i++){
+    if((evA.tie[i]||0) !== (evB.tie[i]||0)){ diffIdx = i; break; }
+  }
+  if(diffIdx < coreLen){
+    return `どちらも「${nameA}」ですが、役の中心となる数字が${winner}の方が高いので、${winner}の勝ちです。`;
+  }
+  return `どちらも「${nameA}」で役の中心となる数字は同じですが、キッカー(残りのカード)が${winner}の方が高いので、${winner}の勝ちです。`;
 }
 function buildCompare(root, ctx){
   const N = 5;
