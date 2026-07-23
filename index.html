@@ -723,6 +723,10 @@ const POSITION_DEMO_SEATS = [
   {key:'you', name:'あなた(ボタン)', isYou:true},
 ];
 const POSITION_DEMO_EVENTS = [
+  {acting:null, resolved:{a:'SB 5', b:'BB 10'}, resolvedClass:'chip-blind', banner:'プリフロップ開始：まずブラインドが強制的に賭けられる',
+    caption:'ブラインドとは、プリフロップで強制的に賭けさせられる少額のベット。ボタンのすぐ左隣(ここでは相手A)がスモールブラインド(SB)、その隣(相手B)がビッグブラインド(BB)を払う。ホールカードを見る前に払う「参加料」のようなものだ。'},
+  {acting:null, resolved:{a:'SB 5', b:'BB 10'}, resolvedClass:'chip-blind', banner:'ブラインドを払うと、プリフロップの行動順は「遅い」側になる',
+    caption:'SBとBBはこのハンド最初の強制ベットを払うが、その後のプリフロップの行動順では逆に最後の方(遅い側)になる。しかしフロップ以降は一転、全員の中で最初に行動しなければならない——これがブラインドの特殊なところだ。'},
   {acting:null, resolved:{}, banner:'フロップが開いた。まだ誰も行動していない',
     caption:'ポストフロップでは、ボタンの左隣の人から時計回りに行動する。今回は 相手A → 相手B → あなた の順。'},
   {acting:'a', resolved:{}, banner:'相手A(アーリー)の番：誰の反応も見られないまま判断',
@@ -738,7 +742,7 @@ function renderPositionDemo(container, idx){
     const isActing = ev.acting===s.key;
     const resolvedLabel = ev.resolved[s.key];
     let chipHtml = '';
-    if(resolvedLabel) chipHtml = `<div class="holdem-seat-chip chip-call">${resolvedLabel}</div>`;
+    if(resolvedLabel) chipHtml = `<div class="holdem-seat-chip ${ev.resolvedClass||'chip-call'}">${resolvedLabel}</div>`;
     else if(isActing) chipHtml = `<div class="holdem-seat-chip chip-bet">考え中…</div>`;
     return `<div class="holdem-seat ${s.isYou?'you':''} ${isActing?'acting':''}">
       <div class="holdem-seat-name">${s.name}</div>
