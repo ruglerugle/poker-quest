@@ -457,7 +457,7 @@ function linkGlossaryIn(root){
     if(!node.nodeValue || !GLOSSARY_REGEX.test(node.nodeValue)) continue;
     let el = node.parentElement, skip = false;
     while(el && el!==root){
-      if(el.tagName==='BUTTON' || el.classList.contains('glossary-term') || el.classList.contains('choice-btn')){ skip = true; break; }
+      if(el.tagName==='BUTTON' || el.tagName==='H2' || el.classList.contains('glossary-term') || el.classList.contains('choice-btn') || el.classList.contains('chapter-title')){ skip = true; break; }
       el = el.parentElement;
     }
     if(!skip) targets.push(node);

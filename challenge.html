@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POKER QUEST ― 総合チャレンジ：CPU対戦 ―</title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9RTQCP2HXM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-9RTQCP2HXM');
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{max-width:100vw;overflow-x:hidden}
+:root{
+  --bg1:#0d4b32;--bg2:#116b46;--bg3:#052015;
+  --paper:#f6f1e2;--paper2:#fffdf6;--ink:#241d12;--muted:#8a7a5c;--line:#ddd0ad;
+  --gold:#d9a441;--gold-dark:#a6742a;
+  --felt:#0f6b3f;--felt-dark:#083c23;
+  --ok:#2f9e5c;--ok-bg:#e6f5ec;--ok-bd:#8fd1ab;
+  --ng:#c8433f;--ng-bg:#fbe9e8;--ng-bd:#e79a97;
+  --cred:#c1443a;--cblack:#20241f;
+  --shadow:0 16px 40px rgba(0,0,0,.35);
+  --r:10px;--f:system-ui,-apple-system,"Hiragino Sans","Yu Gothic",sans-serif;
+}
+body{font-family:var(--f);color:var(--ink);font-weight:600;min-height:100vh;
+  background:radial-gradient(circle at 20% 0%,var(--bg2) 0,var(--bg1) 40%,var(--bg3) 100%);}
+.app-shell{min-height:100vh;display:flex;flex-direction:column;gap:12px;padding:10px 12px 24px;}
+
+/* Header */
+.game-header{display:flex;align-items:center;gap:18px;flex-wrap:wrap;color:#fff;padding:10px 16px;
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(0,0,0,.14));border-radius:12px;border:1px solid rgba(255,255,255,.15)}
+.brand{display:flex;flex-direction:column;gap:2px;min-width:220px}
+.brand-title{font-size:22px;font-weight:950;letter-spacing:.02em;color:var(--gold);text-shadow:0 2px 0 rgba(0,0,0,.4)}
+.brand-sub{font-size:12.5px;font-weight:800;color:#d9ece7}
+.head-progress-wrap{flex:1;min-width:160px;display:flex;flex-direction:column;gap:4px}
+.head-progress-label{font-size:11.5px;color:#cfe4de;font-weight:800}
+.head-progress{height:14px;background:rgba(255,255,255,.18);border-radius:999px;overflow:hidden;box-shadow:inset 0 2px 4px rgba(0,0,0,.3)}
+.head-progress-fill{height:100%;width:0;background:linear-gradient(90deg,#f3c47a,var(--gold-dark));border-radius:999px;transition:width .4s}
+.head-reset{padding:9px 14px;border:1.5px solid rgba(255,255,255,.55);border-radius:8px;background:rgba(0,0,0,.2);color:#fff;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap}
+.head-reset:hover{background:rgba(255,255,255,.12)}
+a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
+.head-reset.home-badge{width:38px;height:38px;padding:0;border-radius:50%;justify-content:center;background:radial-gradient(circle at 35% 30%, rgba(217,164,65,.5), rgba(10,40,38,1) 75%);border:1.5px solid var(--gold);box-shadow:0 0 0 3px rgba(0,0,0,.25),0 0 10px -2px var(--gold);font-size:18px}
+.head-reset.home-badge:hover{box-shadow:0 0 0 3px rgba(0,0,0,.25),0 0 16px 0 var(--gold);background:rgba(0,0,0,.12);transform:translateY(-2px) scale(1.07)}
+
+/* Header actions (home badge / reset / nav toggle) */
+.header-actions{display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0}
+
+/* Layout — off-canvas drawer pattern shared with the other quest games */
+.game-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:14px;align-items:start;transition:grid-template-columns .25s ease}
+.side-backdrop{display:none}
+
+/* Sidebar */
+.side-panel{background:linear-gradient(180deg,rgba(17,107,70,.92),rgba(5,32,21,.95));border:1px solid rgba(255,255,255,.16);
+  border-radius:12px;box-shadow:var(--shadow);overflow:hidden;position:sticky;top:10px;transition:width .25s ease}
+.side-head{padding:12px 14px;font-size:13px;font-weight:900;color:#eaf6f2;border-bottom:1px solid rgba(255,255,255,.14);
+  display:flex;align-items:center;gap:8px;min-height:20px}
+.side-head-text{white-space:nowrap}
+.side-toggle{width:32px;height:28px;border:1px solid rgba(255,255,255,.28);border-radius:7px;background:rgba(255,255,255,.10);
+  color:#eaf6f2;font-weight:950;font-size:16px;cursor:pointer;line-height:1;flex-shrink:0}
+.side-list{display:flex;flex-direction:column}
+.side-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.09);
+  color:#c8ded7;cursor:pointer;user-select:none;touch-action:manipulation;min-width:0}
+.side-item:hover{background:rgba(255,255,255,.06)}
+.side-item.active{background:rgba(217,164,65,.2);box-shadow:inset 3px 0 0 var(--gold)}
+.side-item.locked{opacity:.45;cursor:not-allowed}
+.side-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.side-text{min-width:0}
+.side-main{font-size:12.5px;font-weight:900;line-height:1.3;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-sub{font-size:10.5px;color:#a9c7be;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* collapsed (icon-rail / off-canvas) state, toggled via #app-shell.side-collapsed */
+.app-shell.side-collapsed .game-layout{grid-template-columns:64px minmax(0,1fr)}
+.app-shell.side-collapsed .side-panel{width:64px}
+.app-shell.side-collapsed .side-head{justify-content:center;padding:8px 6px}
+.app-shell.side-collapsed .side-head-text{display:none}
+.app-shell.side-collapsed .side-item{justify-content:center;padding:11px 6px}
+.app-shell.side-collapsed .side-item .side-text{display:none}
+
+/* Desktop: sidebar always fully expanded regardless of toggle state */
+@media(min-width:901px){
+  .app-shell.side-collapsed .game-layout{grid-template-columns:230px minmax(0,1fr) !important}
+  .app-shell.side-collapsed .side-panel{width:auto !important}
+  .app-shell.side-collapsed .side-head{justify-content:space-between !important;padding:12px 14px !important}
+  .app-shell.side-collapsed .side-head-text{display:block !important}
+  .app-shell.side-collapsed .side-item{justify-content:flex-start !important;padding:11px 14px !important}
+  .app-shell.side-collapsed .side-item .side-text{display:block !important}
+}
+/* Tablet: collapsed = icon rail */
+@media(max-width:900px){
+  .game-layout{grid-template-columns:64px minmax(0,1fr);gap:8px}
+  .app-shell:not(.side-collapsed) .game-layout{grid-template-columns:210px minmax(0,1fr)}
+  .side-panel{position:sticky;top:8px}
+}
+/* Mobile: collapsed = fully hidden off-canvas drawer */
+@media(max-width:700px){
+  .game-layout{grid-template-columns:1fr}
+  .app-shell.side-collapsed .game-layout,
+  .app-shell:not(.side-collapsed) .game-layout{grid-template-columns:1fr}
+  .side-panel{position:fixed;top:0;left:0;width:min(82vw,300px);height:100vh;height:100dvh;
+    border-radius:0;transform:translateX(-100%);transition:transform .25s ease;
+    box-shadow:10px 0 30px rgba(0,0,0,.45);overflow-y:auto;z-index:80}
+  .app-shell.side-collapsed .side-panel{transform:translateX(-100%)}
+  .app-shell:not(.side-collapsed) .side-panel{transform:translateX(0)}
+  .side-backdrop{display:none;position:fixed;inset:0;background:rgba(6,12,18,.55);z-index:70}
+  .app-shell:not(.side-collapsed) .side-backdrop{display:block}
+  .game-header{padding:8px 12px}
+}
+
+/* Main area */
+.main-area{background:var(--paper);border:1px solid #e3d8bd;border-radius:12px;padding:18px 18px 20px;box-shadow:var(--shadow);min-height:520px}
+.chapter-head{margin-bottom:12px}
+.chapter-badge{display:inline-block;background:linear-gradient(#e8c07f,var(--gold-dark));color:#3a2705;border-radius:7px;
+  padding:4px 11px;font-size:12px;font-weight:950;letter-spacing:.02em;margin-right:8px;box-shadow:0 2px 0 rgba(0,0,0,.15)}
+.chapter-title{display:inline;font-size:20px;font-weight:950;color:#1c2f2b}
+.chapter-sub{font-size:13px;color:var(--muted);margin-top:4px;font-weight:700}
+
+/* Dialogue */
+.dialogue-scene{display:flex;flex-direction:column;gap:8px;margin:14px 0 16px}
+.dialog-row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:stretch;border:1px solid var(--line);background:var(--paper2);border-radius:10px;padding:10px 12px;box-shadow:0 2px 0 rgba(0,0,0,.04)}
+.dialog-row.right{grid-template-columns:minmax(0,1fr) 96px}
+.dialog-row.right .dialog-character{order:2}
+.dialog-row.right .dialog-bubble{order:1}
+.dialog-character{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0}
+.dialog-avatar{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 3px 6px rgba(0,0,0,.18);flex-shrink:0}
+.dialog-avatar.coach{background:linear-gradient(#fde3d6,#f7c2a4)}
+.dialog-avatar.stu{background:linear-gradient(#dcefe9,#b9dcd0)}
+.dialog-name{padding:3px 10px;border-radius:7px;color:#fff;font-weight:900;font-size:11px;line-height:1.2;box-shadow:0 2px 0 rgba(0,0,0,.16);white-space:nowrap;text-align:center}
+.dialog-name.coach{background:linear-gradient(#f0b868,#c19a3a)}
+.dialog-name.stu{background:linear-gradient(#5cc2ab,#2f8f78)}
+.dialog-bubble{position:relative;align-self:center;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:11px 14px;color:var(--ink);font-size:13.5px;line-height:1.75;font-weight:700;min-height:56px;display:flex;flex-direction:column;justify-content:center}
+.dialog-bubble::before{content:"";position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:0;height:0;border-top:8px solid transparent;border-bottom:8px solid transparent;border-right:10px solid var(--line)}
+.dialog-bubble::after{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:0;height:0;border-top:7px solid transparent;border-bottom:7px solid transparent;border-right:9px solid var(--paper)}
+.dialog-row.right .dialog-bubble::before{left:auto;right:-10px;border-right:0;border-left:10px solid var(--line)}
+.dialog-row.right .dialog-bubble::after{left:auto;right:-8px;border-right:0;border-left:9px solid var(--paper)}
+@media (max-width:700px){
+  .dialog-row,.dialog-row.right{grid-template-columns:74px minmax(0,1fr);padding:8px;gap:8px}
+  .dialog-row.right .dialog-character{order:0}
+  .dialog-row.right .dialog-bubble{order:1}
+  .dialog-avatar{width:52px;height:52px;font-size:24px}
+  .dialog-name{font-size:9.5px;padding:3px 7px}
+  .dialog-bubble{font-size:13px;padding:9px 11px;min-height:0}
+  .dialog-row.right .dialog-bubble::before{left:-10px;right:auto;border-left:0;border-right:10px solid var(--line)}
+  .dialog-row.right .dialog-bubble::after{left:-8px;right:auto;border-left:0;border-right:9px solid var(--paper)}
+}
+
+/* Mission box */
+.mission-box{background:linear-gradient(180deg,#fff8e6,#fdefc9);border:1px solid #e3c877;border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.mission-label{font-size:11.5px;font-weight:950;color:#8a6614;margin-bottom:3px}
+.mission-text{font-size:13.5px;color:#3a2c08;font-weight:700;line-height:1.6}
+.mission-status{display:inline-block;margin-top:8px;padding:3px 11px;border-radius:999px;font-size:11.5px;font-weight:900;
+  background:#eee1bd;color:#8a6614}
+.mission-status.ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-bd)}
+
+/* Stage nav / buttons */
+.stage-nav{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap}
+.btn{border:1px solid #c9bda0;background:#fff;border-radius:8px;padding:.65rem 1.2rem;font-size:13.5px;cursor:pointer;
+  color:var(--ink);font-family:var(--f);font-weight:800;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.btn:hover{background:#f4efe0}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:linear-gradient(#d9a441,#a6742a);border-color:#8f5518;color:#fff;box-shadow:0 3px 0 #6f430f}
+.btn-primary:hover{opacity:.92;background:linear-gradient(#d9a441,#a6742a)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+
+/* Generic choice buttons (fold/continue, ending CTAs) */
+.choice-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+
+/* Playing cards */
+.hand-row{display:flex;flex-wrap:wrap;gap:6px}
+.hand-block{margin-bottom:10px}
+.hand-label{font-size:11px;font-weight:900;color:var(--muted);margin-bottom:5px}
+.pcard{width:48px;height:66px;background:#fff;border:1px solid #cfc4a4;border-radius:7px;box-shadow:0 2px 3px rgba(0,0,0,.18);
+  display:flex;flex-direction:column;justify-content:space-between;padding:4px 5px;flex-shrink:0}
+.pcard-corner{font-size:12px;font-weight:900;line-height:1}
+.pcard-suit-big{font-size:22px;text-align:center;line-height:1}
+.pcard.red{color:var(--cred)}
+.pcard.black{color:var(--cblack)}
+
+/* CPU battle table */
+.table-felt{background:radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%);border-radius:14px;padding:16px;box-shadow:inset 0 0 24px rgba(0,0,0,.4)}
+.table-felt .hand-label{color:#dff2e8}
+.table-felt .pot-label{color:#f3d99a;font-size:13.5px;font-weight:950;margin-bottom:10px}
+.table-felt .made-hand{color:#fff;font-size:13px;font-weight:800;margin-top:8px;background:rgba(0,0,0,.22);border-radius:8px;padding:8px 12px;display:inline-block}
+.showdown-result{margin-top:10px;font-size:16px;font-weight:950;color:#fff}
+.showdown-result.win{color:#8ef0b0}
+.showdown-result.lose{color:#f19b96}
+.showdown-result.tie{color:#f3d99a}
+.step-note{font-size:13px;line-height:1.7;color:var(--ink);margin-top:10px}
+.table-felt .step-note{color:#e5f2eb}
+
+/* Ending */
+.ending{text-align:center;padding:20px 10px}
+.ending h2{font-size:22px;margin-bottom:14px;color:#1c2f2b}
+.ending p{font-size:13.5px;line-height:1.8;color:#3a2c08;margin-bottom:16px}
+
+/* Book recommendation */
+#book-recommend{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(0,0,0,.14));border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:10px 16px}
+.book-recommend-label{display:inline-block;font-size:10px;font-weight:900;color:#cfe4de;border:1px solid #cfe4de;border-radius:4px;padding:0 5px;margin:0 0 6px}
+.book-recommend-lead{font-size:12px;color:#cfe4de;margin:0 0 4px;font-weight:700}
+#book-recommend a{font-size:13px;color:#f3c47a;font-weight:900;text-decoration:underline}
+
+/* Glossary: clickable jargon terms + popover definition */
+.glossary-term{border-bottom:1.5px dashed currentColor;opacity:.92;cursor:help;touch-action:manipulation}
+.glossary-term:hover,.glossary-term:active{background:rgba(217,164,65,.22);border-radius:2px}
+#glossary-tooltip{position:fixed;z-index:300;max-width:280px;background:#1c2f2b;color:#fff;border:1px solid var(--gold);
+  border-radius:8px;padding:10px 30px 10px 12px;font-size:12.5px;line-height:1.6;box-shadow:0 8px 24px rgba(0,0,0,.45);
+  display:none}
+#glossary-tooltip.show{display:block}
+#glossary-tooltip .gt-term{font-weight:950;color:var(--gold);margin-bottom:4px;font-size:12.5px}
+#glossary-tooltip .gt-def{color:#eaf6f2}
+#glossary-tooltip .gt-close{position:absolute;top:4px;right:6px;width:22px;height:22px;cursor:pointer;color:#cfe4de;
+  font-size:14px;background:none;border:none;font-family:inherit}
+</style>
+</head>
+<body>
+<div class="app-shell side-collapsed" id="app-shell">
+  <header class="game-header">
+    <div class="brand">
+      <div class="brand-title">⚔️ POKER QUEST 総合チャレンジ</div>
+      <div class="brand-sub">― CPU相手に実戦で腕試し ―</div>
+    </div>
+    <div class="head-progress-wrap">
+      <div class="head-progress-label" id="progress-label">クリア 0 / 1</div>
+      <div class="head-progress"><div class="head-progress-fill" id="progress-fill"></div></div>
+    </div>
+    <div class="header-actions">
+      <a class="head-reset home-badge" href="https://ruglerugle.github.io/" title="クエスト集トップへ" aria-label="クエスト集トップへ">🧭</a>
+      <a class="head-reset" href="index.html">📖 戦略編へ戻る</a>
+      <button class="head-reset" id="btn-reset-all">🔄 最初から</button>
+      <button class="head-reset" id="head-nav-toggle" title="ステージ一覧の表示切替">☰ ナビ</button>
+    </div>
+  </header>
+
+  <div class="game-layout">
+    <div class="side-backdrop" id="side-backdrop"></div>
+    <aside class="side-panel">
+      <div class="side-head">
+        <button class="side-toggle" id="sidebar-toggle" title="ステージ一覧の表示切替" aria-label="ステージ一覧の表示切替">☰</button>
+        <span class="side-head-text">📚 ステージ一覧</span>
+      </div>
+      <div class="side-list" id="side-list"></div>
+    </aside>
+    <main class="main-area" id="main-area"></main>
+  </div>
+
+  <div id="book-recommend"></div>
+</div>
+
+<script>
+'use strict';
+
+/* =====================================================================
+   utilities
+   ===================================================================== */
+function qs(sel, root){ return (root||document).querySelector(sel); }
+function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function randInt(min,max){ return min + Math.floor(Math.random()*(max-min+1)); }
+function pick(arr){ return arr[randInt(0,arr.length-1)]; }
+function shuffleArr(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=randInt(0,i); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function sampleN(arr,n){ return shuffleArr(arr).slice(0,n); }
+
+/* =====================================================================
+   glossary: tap a jargon term anywhere in the page to see its definition.
+   linkGlossaryIn() walks the rendered text of a container and wraps any
+   matching term in a clickable span; a single delegated click listener
+   (set up once at boot) shows a positioned tooltip. Re-running
+   linkGlossaryIn on already-linked content is a no-op (it skips text
+   nodes whose ancestor is already a .glossary-term), so callers can
+   call it freely after every re-render without worrying about double-wrapping.
+   ===================================================================== */
+const GLOSSARY = {
+  'ホールカード': '自分だけに配られる、他のプレイヤーには見せない2枚の手札。',
+  'コミュニティカード': 'テーブル中央に公開される、全員で共有するカード(フロップ3枚+ターン1枚+リバー1枚の計5枚)。',
+  'プリフロップ': 'ホールカードが配られた直後、コミュニティカードがまだ1枚も公開されていない最初のベッティングラウンド。手札2枚だけを頼りに判断する。',
+  'ポストフロップ': 'フロップが公開されて以降の総称。フロップ・ターン・リバーの3つのベッティングラウンドをまとめてこう呼ぶ。手札に加えて公開されたコミュニティカードの情報も使って判断できる。',
+  'フロップ': '最初に公開される3枚のコミュニティカード。ここから2回目のベッティングラウンドが始まる。',
+  'ターン': 'フロップの次に公開される4枚目のコミュニティカード。',
+  'リバー': '最後に公開される5枚目のコミュニティカード。',
+  'ショーダウン': '最後まで残ったプレイヤー同士でカードを見せ合い、役の強さを比べること。',
+  'キッカー': '役の直接の構成には使わない、残りのカード。同じ役同士の勝敗を決める材料になる。',
+  'スーテッド': '2枚の手札が同じスート(マーク)であること。役や強さの計算にプラスに働く。',
+  'コネクター': '2枚の手札の数字が連続していること(例：9と8)。ストレートを狙いやすい。',
+  'ブラインド': 'プリフロップで強制的に賭けさせられる少額のベット。',
+  'スモールブラインド': 'ブラインドのうち少ない方の額。ボタンの次に座る人が払う。',
+  'ビッグブラインド': 'ブラインドのうち多い方の額。スモールブラインドの次に座る人が払う。',
+  'オールイン': '残っているチップをすべて賭けること。それ以上は賭けようがない。',
+  'メインポット': 'オールインが起きたとき、参加者全員が獲得資格を持つポットの部分。',
+  'サイドポット': 'オールインした人より多く賭けた人たちだけが獲得資格を持つ、追加のポット。',
+  'ポジション': 'テーブル上の座席の位置。行動する順番と、得られる情報量を左右する。',
+  'ボタン': 'ディーラー役を示す印。この位置にいる人は、フロップ以降は常に最後に行動できる。',
+  'アウツ': '今の手札を、より強い役に完成させてくれる残りのカードの枚数。',
+  'ドロー': '役があと少しで完成しそうな、未完成の状態。',
+  'ポットオッズ': 'コールに必要な金額と、獲得できるポットの大きさの比率から計算する「必要勝率」。',
+  'エクイティ': '今の時点での、自分が最終的に勝てる見込みの確率。',
+  '期待値': '長期的に見たときの、平均的な損得の見込み。プラスなら得(+EV)、マイナスなら損(-EV)。',
+  'レンジ': '相手が持っている可能性のある手札の範囲(分布)。1つの手に決め打ちしない考え方。',
+  'ハンドリーディング': '相手の行動から、持っている手札のレンジを読み取る技術。',
+  'ブラフ': '弱い手なのに強い手のふりをして、相手を降ろさせるための賭け方。',
+};
+const GLOSSARY_REGEX = new RegExp('(' + Object.keys(GLOSSARY).sort((a,b)=>b.length-a.length).map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|') + ')');
+function linkGlossaryIn(root){
+  if(!root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const targets = [];
+  let node;
+  while((node = walker.nextNode())){
+    if(!node.nodeValue || !GLOSSARY_REGEX.test(node.nodeValue)) continue;
+    let el = node.parentElement, skip = false;
+    while(el && el!==root){
+      if(el.tagName==='BUTTON' || el.tagName==='H2' || el.classList.contains('glossary-term') || el.classList.contains('choice-btn') || el.classList.contains('chapter-title')){ skip = true; break; }
+      el = el.parentElement;
+    }
+    if(!skip) targets.push(node);
+  }
+  targets.forEach(textNode=>{
+    const parts = textNode.nodeValue.split(GLOSSARY_REGEX);
+    if(parts.length<=1) return;
+    // Wrap everything in a single inline <span> (not a bare DocumentFragment) so
+    // that replacing the one original text node still leaves exactly one child
+    // in the parent — this matters because several containers in this app use
+    // display:flex (e.g. .dialog-bubble), where multiple top-level sibling
+    // nodes would each become their own flex item and stack on separate lines.
+    const wrap = document.createElement('span');
+    parts.forEach((part,i)=>{
+      if(!part) return;
+      if(i%2===1){
+        const span = document.createElement('span');
+        span.className = 'glossary-term';
+        span.textContent = part;
+        span.dataset.term = part;
+        wrap.appendChild(span);
+      } else {
+        wrap.appendChild(document.createTextNode(part));
+      }
+    });
+    textNode.parentNode.replaceChild(wrap, textNode);
+  });
+}
+function showGlossaryTooltip(span){
+  const def = GLOSSARY[span.dataset.term];
+  if(!def) return;
+  let tip = document.getElementById('glossary-tooltip');
+  if(!tip){
+    tip = document.createElement('div');
+    tip.id = 'glossary-tooltip';
+    tip.innerHTML = '<button class="gt-close" aria-label="閉じる">✕</button><div class="gt-term"></div><div class="gt-def"></div>';
+    document.body.appendChild(tip);
+    tip.querySelector('.gt-close').addEventListener('click', (e)=>{ e.stopPropagation(); hideGlossaryTooltip(); });
+  }
+  tip.querySelector('.gt-term').textContent = span.dataset.term;
+  tip.querySelector('.gt-def').textContent = def;
+  tip.classList.remove('show'); tip.style.visibility = 'hidden'; tip.classList.add('show');
+  const rect = span.getBoundingClientRect();
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = rect.left, top = rect.bottom + 6;
+  if(left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
+  if(left < 8) left = 8;
+  if(top + th > window.innerHeight - 8) top = rect.top - th - 6;
+  if(top < 8) top = 8;
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+  tip.style.visibility = '';
+}
+function hideGlossaryTooltip(){
+  const tip = document.getElementById('glossary-tooltip');
+  if(tip) tip.classList.remove('show');
+}
+document.addEventListener('click', (e)=>{
+  const term = e.target.closest('.glossary-term');
+  if(term){ e.stopPropagation(); showGlossaryTooltip(term); return; }
+  if(!e.target.closest('#glossary-tooltip')) hideGlossaryTooltip();
+});
+
+/* =====================================================================
+   card model
+   ===================================================================== */
+const SUITS = ['s','h','d','c'];
+const SUIT_SYMBOL = {s:'♠',h:'♥',d:'♦',c:'♣'};
+function mkCard(rank,suit){ return {rank,suit}; }
+function rankLabel(r){ return r===14?'A': r===13?'K': r===12?'Q': r===11?'J': String(r); }
+function cardHtml(card){
+  const red = card.suit==='h'||card.suit==='d';
+  return `<div class="pcard ${red?'red':'black'}"><div class="pcard-corner">${rankLabel(card.rank)}${SUIT_SYMBOL[card.suit]}</div><div class="pcard-suit-big">${SUIT_SYMBOL[card.suit]}</div></div>`;
+}
+function freshDeck(){ const d=[]; SUITS.forEach(s=>{ for(let r=2;r<=14;r++) d.push(mkCard(r,s)); }); return d; }
+
+/* =====================================================================
+   hand evaluator (verified against brute-force outs counting & many
+   randomized category checks before shipping)
+   ===================================================================== */
+function evaluate5(cards){
+  const ranksSorted = cards.map(c=>c.rank).sort((a,b)=>b-a);
+  const suits = cards.map(c=>c.suit);
+  const isFlush = suits.every(s=>s===suits[0]);
+  const uniqueRanks = [...new Set(ranksSorted)];
+  let isStraight=false, straightHigh=0;
+  if(uniqueRanks.length===5){
+    if(uniqueRanks[0]-uniqueRanks[4]===4){ isStraight=true; straightHigh=uniqueRanks[0]; }
+    else if(JSON.stringify(uniqueRanks)===JSON.stringify([14,5,4,3,2])){ isStraight=true; straightHigh=5; }
+  }
+  const counts = {};
+  ranksSorted.forEach(r=>counts[r]=(counts[r]||0)+1);
+  const groups = Object.entries(counts).map(([r,c])=>({rank:Number(r),count:c}))
+     .sort((a,b)=> b.count-a.count || b.rank-a.rank);
+
+  if(isStraight && isFlush) return {cat:8, tie:[straightHigh]};
+  if(groups[0].count===4) return {cat:7, tie:[groups[0].rank, groups[1].rank]};
+  if(groups[0].count===3 && groups[1] && groups[1].count>=2) return {cat:6, tie:[groups[0].rank, groups[1].rank]};
+  if(isFlush) return {cat:5, tie:ranksSorted};
+  if(isStraight) return {cat:4, tie:[straightHigh]};
+  if(groups[0].count===3) return {cat:3, tie:[groups[0].rank, ...groups.slice(1).map(g=>g.rank)]};
+  if(groups[0].count===2 && groups[1] && groups[1].count===2){
+    const kicker = groups[2].rank;
+    return {cat:2, tie:[groups[0].rank, groups[1].rank, kicker]};
+  }
+  if(groups[0].count===2) return {cat:1, tie:[groups[0].rank, ...groups.slice(1).map(g=>g.rank)]};
+  return {cat:0, tie:ranksSorted};
+}
+function compareEval(a,b){
+  if(a.cat!==b.cat) return a.cat-b.cat;
+  for(let i=0;i<Math.max(a.tie.length,b.tie.length);i++){
+    const av=a.tie[i]||0, bv=b.tie[i]||0;
+    if(av!==bv) return av-bv;
+  }
+  return 0;
+}
+function kCombinations(arr, k){
+  const results=[];
+  function helper(start, combo){
+    if(combo.length===k){ results.push([...combo]); return; }
+    for(let i=start;i<arr.length;i++){ combo.push(arr[i]); helper(i+1,combo); combo.pop(); }
+  }
+  helper(0,[]);
+  return results;
+}
+function bestOf(cards){
+  const combos = cards.length===5 ? [cards] : kCombinations(cards,5);
+  let best=null, bestCombo=null;
+  combos.forEach(c=>{ const e=evaluate5(c); if(!best || compareEval(e,best)>0){ best=e; bestCombo=c; } });
+  return {eval:best, cards:bestCombo};
+}
+const CAT_NAMES = ['ハイカード','ワンペア','ツーペア','スリーカード','ストレート','フラッシュ','フルハウス','フォーカード','ストレートフラッシュ'];
+function catDisplayName(ev){ return (ev.cat===8 && ev.tie[0]===14) ? 'ロイヤルフラッシュ' : CAT_NAMES[ev.cat]; }
+
+/* =====================================================================
+   dialogue renderer
+   ===================================================================== */
+function renderDialogue(lines){
+  return lines.map(l=>{
+    const isStu = l.who === 'stu';
+    const icon = l.who==='coach' ? '🎩' : '🔰';
+    const name = l.who==='coach' ? 'コーチ' : 'ミカ（見習い）';
+    return `<div class="dialog-row${isStu?' right':''}">
+      <div class="dialog-character"><div class="dialog-avatar ${l.who}">${icon}</div><div class="dialog-name ${l.who}">${name}</div></div>
+      <div class="dialog-bubble">${l.text}</div>
+    </div>`;
+  }).join('');
+}
+
+/* =====================================================================
+   Stage: 総合チャレンジ：CPU対戦 (interactive, non-MCQ)
+   ===================================================================== */
+function buildFinal(root, ctx){
+  const TOTAL_HANDS = 3;
+  let handIndex = 0;
+  const results = [];
+
+  function playHand(){
+    const deck = shuffleArr(freshDeck());
+    const playerHole = [deck.pop(), deck.pop()];
+    const cpuHole = [deck.pop(), deck.pop()];
+    const board = [deck.pop(),deck.pop(),deck.pop(),deck.pop(),deck.pop()];
+    let street = 'flop';
+
+    function currentBoard(){ return street==='flop' ? board.slice(0,3) : board.slice(0,4); }
+
+    function renderDecision(){
+      const shownBoard = currentBoard();
+      const madeBest = bestOf([...playerHole, ...shownBoard]);
+      root.innerHTML = `
+        ${ctx.missionBoxHtml}
+        <div class="table-felt">
+          <div class="pot-label">🪙 ポット: 100 ／ ハンド ${handIndex+1} / ${TOTAL_HANDS}</div>
+          <div class="hand-block"><div class="hand-label">あなたのホールカード</div><div class="hand-row">${playerHole.map(cardHtml).join('')}</div></div>
+          <div class="hand-block"><div class="hand-label">${street==='flop'?'フロップ':'ターン'}</div><div class="hand-row">${shownBoard.map(cardHtml).join('')}</div></div>
+          <div class="made-hand">現在の最強の役: <b>${catDisplayName(madeBest.eval)}</b></div>
+          <div class="choice-list">
+            <button class="btn" id="btn-fold">🏳️ フォールド(降りる)</button>
+            <button class="btn btn-primary" id="btn-continue">▶ 勝負を続ける</button>
+          </div>
+        </div>`;
+      linkGlossaryIn(root);
+      qs('#btn-fold', root).addEventListener('click', ()=> finishHand('fold'));
+      qs('#btn-continue', root).addEventListener('click', ()=>{
+        if(street==='flop'){ street='turn'; renderDecision(); }
+        else { showdown(); }
+      });
+    }
+
+    function showdown(){
+      const pBest = bestOf([...playerHole, ...board]);
+      const cBest = bestOf([...cpuHole, ...board]);
+      const cmp = compareEval(pBest.eval, cBest.eval);
+      const outcome = cmp>0 ? 'win' : cmp<0 ? 'lose' : 'tie';
+      root.innerHTML = `
+        ${ctx.missionBoxHtml}
+        <div class="table-felt">
+          <div class="pot-label">🪙 ショウダウン ／ ハンド ${handIndex+1} / ${TOTAL_HANDS}</div>
+          <div class="hand-block"><div class="hand-label">あなたのホールカード</div><div class="hand-row">${playerHole.map(cardHtml).join('')}</div></div>
+          <div class="hand-block"><div class="hand-label">CPUのホールカード</div><div class="hand-row">${cpuHole.map(cardHtml).join('')}</div></div>
+          <div class="hand-block"><div class="hand-label">ボード</div><div class="hand-row">${board.map(cardHtml).join('')}</div></div>
+          <div class="made-hand">あなた: <b>${catDisplayName(pBest.eval)}</b> ／ CPU: <b>${catDisplayName(cBest.eval)}</b></div>
+          <div class="showdown-result ${outcome}">${outcome==='win'?'🎉 あなたの勝ち！':outcome==='lose'?'😢 CPUの勝ち…':'🤝 引き分け'}</div>
+          <div class="choice-list"><button class="btn btn-primary" id="btn-nexthand">次へ ▶</button></div>
+        </div>`;
+      linkGlossaryIn(root);
+      qs('#btn-nexthand', root).addEventListener('click', ()=> finishHand(outcome));
+    }
+
+    function finishHand(outcome){
+      results.push(outcome);
+      handIndex++;
+      if(handIndex>=TOTAL_HANDS) showSummary();
+      else playHand();
+    }
+
+    renderDecision();
+  }
+
+  function showSummary(){
+    const wins = results.filter(r=>r==='win').length;
+    const loses = results.filter(r=>r==='lose').length;
+    const ties = results.filter(r=>r==='tie').length;
+    const folds = results.filter(r=>r==='fold').length;
+    root.innerHTML = `
+      ${ctx.missionBoxHtml}
+      <div class="table-felt">
+        <div class="pot-label">🏁 全${TOTAL_HANDS}ハンド終了</div>
+        <div class="made-hand">勝ち ${wins} ／ 負け ${loses} ／ 引き分け ${ties} ／ フォールド ${folds}</div>
+        <p class="step-note">役の見極め、ドローの見込み、無理をしない判断——ここまで学んだ知識を活かせたかな？</p>
+      </div>`;
+    linkGlossaryIn(root);
+    ctx.complete();
+  }
+
+  playHand();
+}
+
+/* =====================================================================
+   stage metadata
+   ===================================================================== */
+const STAGES = [
+  {
+    key:'challenge', title:'総合チャレンジ：CPU対戦', sub:'学んだ知識を武器に3ハンド勝負',
+    missionText:'CPU相手に3ハンド勝負しよう。役の見極めとフォールド判断を実践してみよう。',
+    dialogue:[
+      {who:'coach', text:'「戦略編」で学んだ知識を総動員する最終試練だ。CPU相手に3ハンド勝負してもらう。'},
+      {who:'stu', text:'緊張します…！自分の役をちゃんと見極めて、必要なら降りる勇気も持たないと。'},
+      {who:'coach', text:'その意識が一番大事だ。役の強さ、ドローの見込み、無理をしない判断——全部使って挑んでみよう！'},
+    ],
+    build: buildFinal,
+  },
+];
+
+/* ---------- shared state / persistence ---------- */
+const STORE_KEY = 'pokerQuestChallengeProgress';
+const state = { unlocked:1, cleared:new Set(), currentIndex:0 };
+
+function loadProgress(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if(raw){
+      state.unlocked = raw.unlocked || 1;
+      state.cleared = new Set(raw.cleared || []);
+    }
+  }catch(e){}
+  if (new URLSearchParams(location.search).has('all')) state.unlocked = STAGES.length;
+}
+function saveProgress(){
+  localStorage.setItem(STORE_KEY, JSON.stringify({unlocked:state.unlocked, cleared:[...state.cleared]}));
+}
+
+/* ---------- sidebar / header ---------- */
+function renderSidebar(){
+  const list = qs('#side-list');
+  list.innerHTML = STAGES.map((s,i)=>{
+    const locked = i > state.unlocked - 1;
+    const cleared = state.cleared.has(i);
+    const active = i === state.currentIndex;
+    const icon = cleared ? '✅' : locked ? '🔒' : '🃏';
+    return `<div class="side-item ${active?'active':''} ${locked?'locked':''}" data-index="${i}">
+      <span class="side-icon">${icon}</span>
+      <span class="side-text">
+        <div class="side-main">第${i+1}ステージ ${s.title}</div>
+        <div class="side-sub">${s.sub}</div>
+      </span>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.side-item').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      const i = Number(item.dataset.index);
+      if(i > state.unlocked - 1) return;
+      mountStage(i);
+    });
+  });
+
+  qs('#progress-label').textContent = `クリア ${state.cleared.size} / ${STAGES.length}`;
+  qs('#progress-fill').style.width = (state.cleared.size / STAGES.length * 100) + '%';
+}
+
+qs('#btn-reset-all').addEventListener('click', ()=>{
+  if(!confirm('進行状況をすべてリセットして最初からやり直しますか？')) return;
+  state.unlocked = 1; state.cleared = new Set();
+  saveProgress();
+  mountStage(0);
+});
+
+/* ---------- sidebar drawer toggle (mobile off-canvas / tablet icon-rail) ---------- */
+function toggleSidebar(){ qs('#app-shell').classList.toggle('side-collapsed'); }
+qs('#sidebar-toggle').addEventListener('click', toggleSidebar);
+qs('#head-nav-toggle').addEventListener('click', toggleSidebar);
+qs('#side-backdrop').addEventListener('click', ()=> qs('#app-shell').classList.add('side-collapsed'));
+
+/* ---------- stage mount / navigation ---------- */
+function missionBoxHtml(meta, index){
+  return `<div class="mission-box">
+      <div class="mission-label">🎯 お題</div>
+      <div class="mission-text">${meta.missionText}</div>
+      <div class="mission-status" id="mission-status">${state.cleared.has(index) ? '達成！' : '未達成'}</div>
+    </div>`;
+}
+function mountStage(index){
+  state.currentIndex = index;
+  const meta = STAGES[index];
+  const main = qs('#main-area');
+  main.innerHTML = `
+    <div class="chapter-head">
+      <span class="chapter-badge">第${index+1}ステージ</span><span class="chapter-title">${meta.title}</span>
+      <div class="chapter-sub">${meta.sub}</div>
+    </div>
+    <div class="dialogue-scene">${renderDialogue(meta.dialogue)}</div>
+    <div class="stage-play" id="stage-play"></div>
+    <div class="stage-nav">
+      <button class="btn" id="btn-retry">↺ このステージをやり直す</button>
+      <button class="btn btn-primary" id="btn-next" ${state.cleared.has(index) ? '' : 'disabled'}>
+        ${index === STAGES.length-1 ? 'クリア画面へ ▶' : 'つぎのステージへ ▶'}
+      </button>
+    </div>
+  `;
+
+  qs('#btn-retry').addEventListener('click', ()=> mountStage(index));
+  qs('#btn-next').addEventListener('click', ()=>{
+    if(index === STAGES.length-1) showEnding();
+    else mountStage(index+1);
+  });
+
+  const ctx = {
+    missionBoxHtml: missionBoxHtml(meta, index),
+    complete(){
+      if(state.cleared.has(index)) return;
+      state.cleared.add(index);
+      state.unlocked = Math.max(state.unlocked, index+2);
+      saveProgress();
+      const statusEl = qs('#mission-status');
+      statusEl.textContent = '達成！';
+      statusEl.classList.add('ok');
+      qs('#btn-next').removeAttribute('disabled');
+      renderSidebar();
+    },
+  };
+  meta.build(qs('#stage-play'), ctx);
+  if(state.cleared.has(index)) qs('#mission-status')?.classList.add('ok');
+  linkGlossaryIn(main);
+  renderSidebar();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function showEnding(){
+  const main = qs('#main-area');
+  main.innerHTML = `
+    <div class="ending">
+      <h2>⚔️ 総合チャレンジ 制覇！</h2>
+      <p>CPU相手に3ハンド戦い抜いた。役の見極め、ポットオッズ、ポジション、レンジ、ブロッカー、ベットサイジングの数学——「戦略編」で学んだ知識を実戦で活かす感覚はつかめたかな？</p>
+      <div class="choice-list" style="justify-content:center">
+        <a class="btn btn-primary" href="index.html">📖 戦略編に戻る</a>
+        <a class="btn" href="https://ruglerugle.github.io/">🧭 クエスト集トップへ</a>
+        <button class="btn" id="btn-replay">↺ もう一度挑戦する</button>
+      </div>
+    </div>
+  `;
+  linkGlossaryIn(main);
+  qs('#btn-replay').addEventListener('click', ()=>{
+    state.unlocked = 1; state.cleared = new Set();
+    saveProgress();
+    mountStage(0);
+  });
+  state.currentIndex = -1;
+  renderSidebar();
+}
+
+/* ---------- book recommendation ---------- */
+const BOOK_RECOMMEND = {
+  title: 'フィル・ゴードン『フィル・ゴードンのポーカー攻略法 入門編』(カジノブックシリーズ)',
+  url: 'https://www.amazon.co.jp/dp/4775949012?tag=senjin-22',
+};
+function renderBookRecommend(){
+  const el = qs('#book-recommend');
+  if(!el) return;
+  el.innerHTML = `
+    <p class="book-recommend-label">参考文献</p>
+    <p class="book-recommend-lead">ゲームだけでは物足りない方へ。世界的プレイヤーが書いた定番の入門書でさらに深く学べる。</p>
+    <a href="${BOOK_RECOMMEND.url}" target="_blank" rel="sponsored noopener">${escapeHtml(BOOK_RECOMMEND.title)}</a>
+  `;
+}
+
+/* ---------- boot ---------- */
+loadProgress();
+mountStage(Math.min(state.currentIndex, state.unlocked-1));
+renderBookRecommend();
+</script>
+</body>
+</html>

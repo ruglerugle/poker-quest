@@ -345,17 +345,8 @@ a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
 .scenario-info{display:flex;flex-wrap:wrap;gap:6px 16px;background:#fbf7ea;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:12.5px;font-weight:800;color:#3a2c08}
 .scenario-info span b{color:var(--gold-dark)}
 
-/* Final CPU battle */
+/* Shared table felt background (used by the position-stage oval table) */
 .table-felt{background:radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%);border-radius:14px;padding:16px;box-shadow:inset 0 0 24px rgba(0,0,0,.4)}
-.table-felt .hand-label{color:#dff2e8}
-.table-felt .pot-label{color:#f3d99a;font-size:13.5px;font-weight:950;margin-bottom:10px}
-.table-felt .made-hand{color:#fff;font-size:13px;font-weight:800;margin-top:8px;background:rgba(0,0,0,.22);border-radius:8px;padding:8px 12px;display:inline-block}
-.showdown-result{margin-top:10px;font-size:16px;font-weight:950;color:#fff}
-.showdown-result.win{color:#8ef0b0}
-.showdown-result.lose{color:#f19b96}
-.showdown-result.tie{color:#f3d99a}
-.step-note{font-size:13px;line-height:1.7;color:var(--ink);margin-top:10px}
-.table-felt .step-note{color:#e5f2eb}
 
 /* Ending */
 .ending{text-align:center;padding:20px 10px}
@@ -477,7 +468,7 @@ function linkGlossaryIn(root){
     if(!node.nodeValue || !GLOSSARY_REGEX.test(node.nodeValue)) continue;
     let el = node.parentElement, skip = false;
     while(el && el!==root){
-      if(el.tagName==='BUTTON' || el.classList.contains('glossary-term') || el.classList.contains('choice-btn')){ skip = true; break; }
+      if(el.tagName==='BUTTON' || el.tagName==='H2' || el.classList.contains('glossary-term') || el.classList.contains('choice-btn') || el.classList.contains('chapter-title')){ skip = true; break; }
       el = el.parentElement;
     }
     if(!skip) targets.push(node);
@@ -1310,95 +1301,6 @@ function buildBoardTexture(root, ctx){
 }
 
 /* =====================================================================
-   Stage 6: 総合チャレンジ：CPU対戦 (interactive, non-MCQ)
-   ===================================================================== */
-function buildFinal(root, ctx){
-  const TOTAL_HANDS = 3;
-  let handIndex = 0;
-  const results = [];
-
-  function playHand(){
-    const deck = shuffleArr(freshDeck());
-    const playerHole = [deck.pop(), deck.pop()];
-    const cpuHole = [deck.pop(), deck.pop()];
-    const board = [deck.pop(),deck.pop(),deck.pop(),deck.pop(),deck.pop()];
-    let street = 'flop';
-
-    function currentBoard(){ return street==='flop' ? board.slice(0,3) : board.slice(0,4); }
-
-    function renderDecision(){
-      const shownBoard = currentBoard();
-      const madeBest = bestOf([...playerHole, ...shownBoard]);
-      root.innerHTML = `
-        ${ctx.missionBoxHtml}
-        <div class="table-felt">
-          <div class="pot-label">🪙 ポット: 100 ／ ハンド ${handIndex+1} / ${TOTAL_HANDS}</div>
-          <div class="hand-block"><div class="hand-label">あなたのホールカード</div><div class="hand-row">${playerHole.map(cardHtml).join('')}</div></div>
-          <div class="hand-block"><div class="hand-label">${street==='flop'?'フロップ':'ターン'}</div><div class="hand-row">${shownBoard.map(cardHtml).join('')}</div></div>
-          <div class="made-hand">現在の最強の役: <b>${catDisplayName(madeBest.eval)}</b></div>
-          <div class="choice-list">
-            <button class="btn" id="btn-fold">🏳️ フォールド(降りる)</button>
-            <button class="btn btn-primary" id="btn-continue">▶ 勝負を続ける</button>
-          </div>
-        </div>`;
-      linkGlossaryIn(root);
-      qs('#btn-fold', root).addEventListener('click', ()=> finishHand('fold'));
-      qs('#btn-continue', root).addEventListener('click', ()=>{
-        if(street==='flop'){ street='turn'; renderDecision(); }
-        else { showdown(); }
-      });
-    }
-
-    function showdown(){
-      const pBest = bestOf([...playerHole, ...board]);
-      const cBest = bestOf([...cpuHole, ...board]);
-      const cmp = compareEval(pBest.eval, cBest.eval);
-      const outcome = cmp>0 ? 'win' : cmp<0 ? 'lose' : 'tie';
-      root.innerHTML = `
-        ${ctx.missionBoxHtml}
-        <div class="table-felt">
-          <div class="pot-label">🪙 ショウダウン ／ ハンド ${handIndex+1} / ${TOTAL_HANDS}</div>
-          <div class="hand-block"><div class="hand-label">あなたのホールカード</div><div class="hand-row">${playerHole.map(cardHtml).join('')}</div></div>
-          <div class="hand-block"><div class="hand-label">CPUのホールカード</div><div class="hand-row">${cpuHole.map(cardHtml).join('')}</div></div>
-          <div class="hand-block"><div class="hand-label">ボード</div><div class="hand-row">${board.map(cardHtml).join('')}</div></div>
-          <div class="made-hand">あなた: <b>${catDisplayName(pBest.eval)}</b> ／ CPU: <b>${catDisplayName(cBest.eval)}</b></div>
-          <div class="showdown-result ${outcome}">${outcome==='win'?'🎉 あなたの勝ち！':outcome==='lose'?'😢 CPUの勝ち…':'🤝 引き分け'}</div>
-          <div class="choice-list"><button class="btn btn-primary" id="btn-nexthand">次へ ▶</button></div>
-        </div>`;
-      linkGlossaryIn(root);
-      qs('#btn-nexthand', root).addEventListener('click', ()=> finishHand(outcome));
-    }
-
-    function finishHand(outcome){
-      results.push(outcome);
-      handIndex++;
-      if(handIndex>=TOTAL_HANDS) showSummary();
-      else playHand();
-    }
-
-    renderDecision();
-  }
-
-  function showSummary(){
-    const wins = results.filter(r=>r==='win').length;
-    const loses = results.filter(r=>r==='lose').length;
-    const ties = results.filter(r=>r==='tie').length;
-    const folds = results.filter(r=>r==='fold').length;
-    root.innerHTML = `
-      ${ctx.missionBoxHtml}
-      <div class="table-felt">
-        <div class="pot-label">🏁 全${TOTAL_HANDS}ハンド終了</div>
-        <div class="made-hand">勝ち ${wins} ／ 負け ${loses} ／ 引き分け ${ties} ／ フォールド ${folds}</div>
-        <p class="step-note">役の見極め、ドローの見込み、無理をしない判断——ここまで学んだ知識を活かせたかな？</p>
-      </div>`;
-    linkGlossaryIn(root);
-    ctx.complete();
-  }
-
-  playHand();
-}
-
-/* =====================================================================
    stage metadata
    ===================================================================== */
 const STAGES = [
@@ -1494,16 +1396,6 @@ const STAGES = [
       {who:'coach', text:'ドローが絡みやすい「濡れた」盤面と、あまり絡まない「乾いた」盤面がある。レンジ・ベットサイジング・ブロッカー、ここまで学んだことが全部ここに関わってくるんだ。'},
     ],
     build: buildBoardTexture,
-  },
-  {
-    key:'final', title:'総合チャレンジ：CPU対戦', sub:'学んだ知識を武器に3ハンド勝負',
-    missionText:'CPU相手に3ハンド勝負しよう。役の見極めとフォールド判断を実践してみよう。',
-    dialogue:[
-      {who:'coach', text:'ここまでの知識を総動員する最終試練だ。CPU相手に3ハンド勝負してもらう。'},
-      {who:'stu', text:'緊張します…！自分の役をちゃんと見極めて、必要なら降りる勇気も持たないと。'},
-      {who:'coach', text:'その意識が一番大事だ。役の強さ、ドローの見込み、無理をしない判断——全部使って挑んでみよう！'},
-    ],
-    build: buildFinal,
   },
 ];
 
@@ -1637,7 +1529,10 @@ function showEnding(){
         ✅ ベット額÷(ポット+ベット額)は、コール側の必要勝率とベット側のブラフ損益分岐フォールド率、両方に使える式<br>
         ✅ 盤面が乾いている(ドライ)か濡れている(ウェット)かで、Cベットの頻度とサイズを変える
       </div>
-      <button class="btn btn-primary" id="btn-replay">↺ はじめから学びなおす</button>
+      <div class="choice-list" style="justify-content:center">
+        <a class="btn btn-primary" href="challenge.html">⚔️ 総合チャレンジ(CPU対戦)へ ▶</a>
+        <button class="btn" id="btn-replay">↺ はじめから学びなおす</button>
+      </div>
     </div>
   `;
   linkGlossaryIn(main);
