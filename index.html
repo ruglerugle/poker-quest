@@ -239,8 +239,20 @@ a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
 .holdem-seat-chip.chip-raise{background:rgba(193,68,58,.65);color:#fff}
 .holdem-seat-chip.chip-fold{background:rgba(122,53,48,.6);color:#fff}
 .holdem-seat-chip.chip-order{background:rgba(0,0,0,.4);color:#f3d99a;font-weight:950}
-.holdem-seats.six{gap:8px}
-.holdem-seats.six .holdem-seat{min-width:84px;padding:8px 8px}
+
+/* Circular table diagram (position stage): seats placed around an oval,
+   like looking down at a real table. No fixed "you" seat (the button
+   rotates every hand), no per-seat number/action badges — captions plus
+   ring-highlight states (start/acting/resolved/blind) carry the teaching. */
+.poker-oval-wrap{position:relative;width:100%;max-width:400px;aspect-ratio:1.5;margin:4px auto 0}
+.poker-oval-felt{position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%);box-shadow:inset 0 0 26px rgba(0,0,0,.4)}
+.poker-oval-seat{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center}
+.poker-oval-seat-badge{width:50px;height:50px;border-radius:50%;background:rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.3);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:900;text-align:center;line-height:1.15;padding:2px}
+.poker-oval-seat.blind .poker-oval-seat-badge{border-color:#4d7fc9;box-shadow:0 0 0 4px rgba(77,127,201,.3)}
+.poker-oval-seat.start .poker-oval-seat-badge{border-color:#8ef0b0;box-shadow:0 0 0 4px rgba(142,240,176,.3)}
+.poker-oval-seat.acting .poker-oval-seat-badge{border-color:#f3d99a;box-shadow:0 0 0 5px rgba(243,217,154,.3)}
+.poker-oval-seat.resolved .poker-oval-seat-badge{opacity:.5}
 .holdem-caption{color:#e5f2eb;font-size:12.5px;line-height:1.7;margin-top:14px;background:rgba(0,0,0,.2);border-radius:8px;padding:10px 12px}
 .step-controls{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0}
 .step-progress{font-size:12px;color:var(--muted);font-weight:800;min-width:60px;text-align:center}
@@ -725,51 +737,60 @@ const POSITION_TABLE = [
 /* デモは下の一覧表とまったく同じ6つの座席(UTG/MP/CO/BTN/SB/BB)を使う。
    3人だけの卓だとSB/BBが「UTG/MPの言い換え」に見えてしまうため、
    フルテーブルで一貫させて誤解を避ける。 */
+/* Seats listed in real clockwise physical order around the table (fixed
+   geometry — only the "current street" changes who acts first, not where
+   anyone is sitting). No seat is pinned to "you": the button rotates every
+   hand, so labeling one seat "あなた" would be misleading. */
 const POSITION_DEMO_SEATS = [
   {key:'utg', name:'UTG'},
   {key:'mp', name:'MP'},
   {key:'co', name:'CO'},
-  {key:'btn', name:'あなた(BTN)', isYou:true},
+  {key:'btn', name:'BTN'},
   {key:'sb', name:'SB'},
   {key:'bb', name:'BB'},
 ];
+const POSITION_SEAT_ANGLES = [-90,-30,30,90,150,210]; // degrees, clockwise from top
+function ovalSeatStyle(i){
+  const rad = POSITION_SEAT_ANGLES[i] * Math.PI/180;
+  const x = 50 + 44*Math.cos(rad);
+  const y = 50 + 40*Math.sin(rad);
+  return `left:${x}%;top:${y}%`;
+}
 const POSITION_DEMO_EVENTS = [
-  {acting:null, resolved:{}, banner:'下の一覧表と同じ6人テーブルで見てみよう',
+  {banner:'下の一覧表と同じ6人テーブルで見てみよう',
     caption:'UTG・MP・CO・BTN・SB・BBの6つの座席。SB・BBは「ブラインドを払う」独立した席で、UTGやMPとは別物であることに注意しよう。'},
-  {acting:null, resolved:{sb:'SB 5', bb:'BB 10'}, resolvedClass:'chip-blind', banner:'プリフロップ開始：まずブラインドが強制的に賭けられる',
-    caption:'ブラインドとは、プリフロップで強制的に賭けさせられる少額のベット。BTNのすぐ左隣がスモールブラインド(SB)、その隣がビッグブラインド(BB)を払う。他の4人(UTG・MP・CO・BTN)はブラインドを払わない。'},
-  {acting:null, resolved:{utg:'1番目', mp:'2番目', co:'3番目', btn:'4番目', sb:'5番目', bb:'6番目'}, resolvedClass:'chip-order',
-    banner:'プリフロップの行動順：UTG→MP→CO→BTN→SB→BB',
-    caption:'ブラインドを払ったSB・BBも、プリフロップの行動順では他の4人より後、最後の2人になる(BBは「オプション」を持つため一番最後)。'},
-  {acting:null, resolved:{sb:'1番目', bb:'2番目', utg:'3番目', mp:'4番目', co:'5番目', btn:'6番目'}, resolvedClass:'chip-order',
-    banner:'フロップ以降は順番が変わる：SB→BB→UTG→MP→CO→BTN',
-    caption:'ブラインドを払ったSB・BBが一転、フロップ以降は全員の中で最初に行動しなければならなくなる。逆にBTNは常に最後——これがポジションの中でBTNが最強と言われる理由。'},
-  {acting:'sb', resolved:{}, banner:'SBの番：誰の反応も見られないまま判断',
+  {blindKeys:['sb','bb'], banner:'プリフロップ開始：まずブラインドが強制的に賭けられる',
+    caption:'ブラインドとは、プリフロップで強制的に賭けさせられる少額のベット。BTNのすぐ左隣のSBが5、その隣のBBが10を払う。他の4人(UTG・MP・CO・BTN)はブラインドを払わない。'},
+  {start:'utg', banner:'プリフロップの行動順：UTGから時計回りにBBまで',
+    caption:'プリフロップはUTGが最初。UTG→MP→CO→BTN→SB→BBの順に時計回りで進み、ブラインドを払ったSB・BBが逆に最後の2人になる(BBは「オプション」を持つため一番最後)。'},
+  {start:'sb', banner:'フロップ以降は順番が変わる：SBから時計回りにBTNまで',
+    caption:'フロップ以降は一転、SBが最初。SB→BB→UTG→MP→CO→BTNの順に進み、BTNが常に最後——これがポジションの中でBTNが最強と言われる理由。'},
+  {acting:'sb', banner:'SBの番：誰の反応も見られないまま判断',
     caption:'SBは、自分の手札とボードの情報だけで判断しなければならない。フロップ以降、最初に行動する立場。'},
-  {acting:'bb', resolved:{sb:'チェック'}, banner:'BBの番：SBの行動だけは見てから判断できる',
+  {acting:'bb', resolvedKeys:['sb'], banner:'BBの番：SBの行動だけは見てから判断できる',
     caption:'BBは、SBがチェックしたという情報を1つ得たうえで判断できる。'},
-  {acting:null, resolved:{sb:'チェック', bb:'チェック', utg:'コール', mp:'フォールド', co:'コール'}, banner:'UTG・MP・COも、順番に前の人の反応を見ながら判断していく',
+  {resolvedKeys:['sb','bb','utg','mp','co'], banner:'UTG・MP・COも、順番に前の人の反応を見ながら判断していく',
     caption:'自分より前に行動した人数が多いほど、判断材料は増えていく。'},
-  {acting:'btn', resolved:{sb:'チェック', bb:'チェック', utg:'コール', mp:'フォールド', co:'コール'}, banner:'あなた(BTN)の番：他の5人全員の行動を見てから判断できる',
+  {acting:'btn', resolvedKeys:['sb','bb','utg','mp','co'], banner:'BTNの番：他の5人全員の行動を見てから判断できる',
     caption:'一番遅く行動するBTNが、もっとも多くの情報を得られる＝もっとも有利なポジション。テーブルの人数が増えるほど、この情報差はさらに大きくなる。'},
 ];
 function renderPositionDemo(container, idx){
   const ev = POSITION_DEMO_EVENTS[idx];
-  const seatsHtml = POSITION_DEMO_SEATS.map(s=>{
-    const isActing = ev.acting===s.key;
-    const resolvedLabel = ev.resolved[s.key];
-    let chipHtml = '';
-    if(resolvedLabel) chipHtml = `<div class="holdem-seat-chip ${ev.resolvedClass||'chip-call'}">${resolvedLabel}</div>`;
-    else if(isActing) chipHtml = `<div class="holdem-seat-chip chip-bet">考え中…</div>`;
-    return `<div class="holdem-seat ${s.isYou?'you':''} ${isActing?'acting':''}">
-      <div class="holdem-seat-name">${s.name}</div>
-      ${chipHtml}
+  const seatsHtml = POSITION_DEMO_SEATS.map((s,i)=>{
+    const classes = ['poker-oval-seat'];
+    if(ev.blindKeys && ev.blindKeys.includes(s.key)) classes.push('blind');
+    if(ev.start===s.key) classes.push('start');
+    if(ev.acting===s.key) classes.push('acting');
+    if(ev.resolvedKeys && ev.resolvedKeys.includes(s.key)) classes.push('resolved');
+    const label = ev.start===s.key ? `▶ ${s.name}` : s.name;
+    return `<div class="${classes.join(' ')}" style="${ovalSeatStyle(i)}">
+      <div class="poker-oval-seat-badge">${label}</div>
     </div>`;
   }).join('');
   container.innerHTML = `
     <div class="table-felt holdem-diagram">
       <div class="holdem-flow-banner">${ev.banner}</div>
-      <div class="holdem-seats six">${seatsHtml}</div>
+      <div class="poker-oval-wrap"><div class="poker-oval-felt"></div>${seatsHtml}</div>
       <div class="holdem-caption">${ev.caption}</div>
     </div>`;
 }
