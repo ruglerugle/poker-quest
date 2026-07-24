@@ -244,15 +244,20 @@ a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
    like looking down at a real table. No fixed "you" seat (the button
    rotates every hand), no per-seat number/action badges — captions plus
    ring-highlight states (start/acting/resolved/blind) carry the teaching. */
-.poker-oval-wrap{position:relative;width:100%;max-width:400px;aspect-ratio:1.5;margin:4px auto 0}
+.poker-oval-wrap{position:relative;width:100%;max-width:440px;aspect-ratio:1.4;margin:4px auto 0}
 .poker-oval-felt{position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 100%);box-shadow:inset 0 0 26px rgba(0,0,0,.4)}
 .poker-oval-seat{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center}
-.poker-oval-seat-badge{width:50px;height:50px;border-radius:50%;background:rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.3);
-  display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:900;text-align:center;line-height:1.15;padding:2px}
+.poker-oval-seat-badge{width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.3);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:900;text-align:center;line-height:1.1;padding:2px}
 .poker-oval-seat.blind .poker-oval-seat-badge{border-color:#4d7fc9;box-shadow:0 0 0 4px rgba(77,127,201,.3)}
 .poker-oval-seat.start .poker-oval-seat-badge{border-color:#8ef0b0;box-shadow:0 0 0 4px rgba(142,240,176,.3)}
 .poker-oval-seat.acting .poker-oval-seat-badge{border-color:#f3d99a;box-shadow:0 0 0 5px rgba(243,217,154,.3)}
 .poker-oval-seat.resolved .poker-oval-seat-badge{opacity:.5}
+.poker-oval-seat.zone-early .poker-oval-seat-badge{border-color:#e2664d;box-shadow:0 0 0 4px rgba(226,102,77,.35)}
+.poker-oval-seat.zone-mid .poker-oval-seat-badge{border-color:#e0b64d;box-shadow:0 0 0 4px rgba(224,182,77,.35)}
+.poker-oval-seat.zone-late .poker-oval-seat-badge{border-color:#5ec98f;box-shadow:0 0 0 4px rgba(94,201,143,.35)}
+.poker-oval-zone-tag{text-align:center;font-size:12px;font-weight:900;margin-top:8px;padding:3px 10px;border-radius:999px;display:inline-block}
+.poker-oval-zone-wrap{text-align:center}
 .holdem-caption{color:#e5f2eb;font-size:12.5px;line-height:1.7;margin-top:14px;background:rgba(0,0,0,.2);border-radius:8px;padding:10px 12px}
 .step-controls{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0}
 .step-progress{font-size:12px;color:var(--muted);font-weight:800;min-width:60px;text-align:center}
@@ -303,6 +308,7 @@ a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
 .pos-cat.early{background:var(--ng-bg);color:var(--ng)}
 .pos-cat.mid{background:#fff3d6;color:#8a6614}
 .pos-cat.late{background:var(--ok-bg);color:var(--ok)}
+.pos-cat.blind{background:#e2ecfb;color:#3a5f9c}
 @media(max-width:560px){.pos-row{grid-template-columns:1fr 1fr;grid-template-areas:"n n" "a b" "c c"}.pos-row.head{display:none}
   .pos-name{grid-area:n}.pos-cell:nth-of-type(1){grid-area:a}.pos-cell:nth-of-type(2){grid-area:b}.pos-cat{grid-area:c;justify-self:start}}
 .holdem-seat.acting{outline:2px dashed #f3d99a;box-shadow:0 0 0 4px rgba(243,217,154,.18)}
@@ -726,52 +732,69 @@ function buildStarting(root, ctx){
 /* =====================================================================
    Stage: ポジションの概念
    ===================================================================== */
+const POSITION_ZONE_LABEL = {early:'アーリーポジション', mid:'ミドルポジション', late:'レイトポジション', blind:'ブラインド'};
 const POSITION_TABLE = [
-  {name:'UTG(アーリー)', pre:'プリフロップ：1番目(最初)', post:'フロップ以降：3番目', cat:'early'},
-  {name:'MP(ミドル)', pre:'プリフロップ：2番目', post:'フロップ以降：4番目', cat:'mid'},
-  {name:'CO(カットオフ)', pre:'プリフロップ：3番目', post:'フロップ以降：5番目', cat:'mid'},
-  {name:'BTN(ボタン)', pre:'プリフロップ：4番目', post:'フロップ以降：6番目(最後・最強)', cat:'late'},
-  {name:'SB(スモールブラインド)', pre:'プリフロップ：5番目', post:'フロップ以降：1番目(最初)', cat:'early'},
-  {name:'BB(ビッグブラインド)', pre:'プリフロップ：6番目(最後)', post:'フロップ以降：2番目', cat:'early'},
+  {name:'UTG', pre:'プリフロップ：1番目(最初)', post:'フロップ以降：3番目', cat:'early'},
+  {name:'UTG+1', pre:'プリフロップ：2番目', post:'フロップ以降：4番目', cat:'early'},
+  {name:'MP', pre:'プリフロップ：3番目', post:'フロップ以降：5番目', cat:'mid'},
+  {name:'LJ(ロージャック)', pre:'プリフロップ：4番目', post:'フロップ以降：6番目', cat:'mid'},
+  {name:'HJ(ハイジャック)', pre:'プリフロップ：5番目', post:'フロップ以降：7番目', cat:'mid'},
+  {name:'CO(カットオフ)', pre:'プリフロップ：6番目', post:'フロップ以降：8番目', cat:'late'},
+  {name:'BTN(ボタン)', pre:'プリフロップ：7番目', post:'フロップ以降：9番目(最後・最強)', cat:'late'},
+  {name:'SB(スモールブラインド)', pre:'プリフロップ：8番目', post:'フロップ以降：1番目(最初)', cat:'blind'},
+  {name:'BB(ビッグブラインド)', pre:'プリフロップ：9番目(最後)', post:'フロップ以降：2番目', cat:'blind'},
 ];
-/* デモは下の一覧表とまったく同じ6つの座席(UTG/MP/CO/BTN/SB/BB)を使う。
-   3人だけの卓だとSB/BBが「UTG/MPの言い換え」に見えてしまうため、
-   フルテーブルで一貫させて誤解を避ける。 */
+/* デモは下の一覧表とまったく同じ9つの座席を使い、フルテーブルで一貫させて誤解を避ける。
+   「アーリー/ミドル/レイト」はどれも1つの席の呼び名ではなく、近い性質の複数席を
+   まとめた"大まかな範囲"の呼び方——という点をズーム演出(zoneHighlight)で見せる。 */
 /* Seats listed in real clockwise physical order around the table (fixed
    geometry — only the "current street" changes who acts first, not where
    anyone is sitting). No seat is pinned to "you": the button rotates every
    hand, so labeling one seat "あなた" would be misleading. */
 const POSITION_DEMO_SEATS = [
-  {key:'utg', name:'UTG'},
-  {key:'mp', name:'MP'},
-  {key:'co', name:'CO'},
-  {key:'btn', name:'BTN'},
-  {key:'sb', name:'SB'},
-  {key:'bb', name:'BB'},
+  {key:'utg', name:'UTG', zone:'early'},
+  {key:'utg1', name:'UTG+1', zone:'early'},
+  {key:'mp', name:'MP', zone:'mid'},
+  {key:'lj', name:'LJ', zone:'mid'},
+  {key:'hj', name:'HJ', zone:'mid'},
+  {key:'co', name:'CO', zone:'late'},
+  {key:'btn', name:'BTN', zone:'late'},
+  {key:'sb', name:'SB', zone:'blind'},
+  {key:'bb', name:'BB', zone:'blind'},
 ];
-const POSITION_SEAT_ANGLES = [-90,-30,30,90,150,210]; // degrees, clockwise from top
+const POSITION_SEAT_ANGLES = POSITION_DEMO_SEATS.map((_,i)=>-90 + i*40); // degrees, clockwise from top
 function ovalSeatStyle(i){
   const rad = POSITION_SEAT_ANGLES[i] * Math.PI/180;
-  const x = 50 + 44*Math.cos(rad);
-  const y = 50 + 40*Math.sin(rad);
+  const x = 50 + 45*Math.cos(rad);
+  const y = 50 + 42*Math.sin(rad);
   return `left:${x}%;top:${y}%`;
 }
 const POSITION_DEMO_EVENTS = [
-  {banner:'下の一覧表と同じ6人テーブルで見てみよう',
-    caption:'UTG・MP・CO・BTN・SB・BBの6つの座席。SB・BBは「ブラインドを払う」独立した席で、UTGやMPとは別物であることに注意しよう。'},
+  {banner:'9人テーブルで見てみよう',
+    caption:'UTG・UTG+1・MP・LJ・HJ・CO・BTN・SB・BBの9つの座席。SB・BBは「ブラインドを払う」独立した席で、他の7つとは別物であることに注意しよう。'},
+  {zoneHighlight:'early', banner:'「アーリーポジション」は1つの席ではなく"範囲"の呼び方',
+    caption:'UTGとUTG+1をまとめて「アーリーポジション」と呼ぶ。どちらも一番早く判断しなければならない、情報が少なく不利な席のグループ。'},
+  {zoneHighlight:'mid', banner:'「ミドルポジション」もMP・LJ・HJの3席をまとめた範囲',
+    caption:'MP・LJ(ロージャック)・HJ(ハイジャック)の3席が「ミドルポジション」。アーリーほど不利ではないが、レイトほど有利でもない中間の範囲。'},
+  {zoneHighlight:'late', banner:'「レイトポジション」はCO・BTNの2席',
+    caption:'CO(カットオフ)とBTN(ボタン)が「レイトポジション」。後で行動できる＝もっとも有利な範囲で、参加するハンドを広げやすい。'},
+  {zoneHighlight:'blind', banner:'SB・BBは「ブラインド」という別枠',
+    caption:'SB・BBはプリフロップこそ最後の2人だが、フロップ以降は逆に最初の2人になる特殊な立場。アーリー/ミドル/レイトのどれにも含めず、別枠で扱う。'},
   {blindKeys:['sb','bb'], banner:'プリフロップ開始：まずブラインドが強制的に賭けられる',
-    caption:'ブラインドとは、プリフロップで強制的に賭けさせられる少額のベット。BTNのすぐ左隣のSBが5、その隣のBBが10を払う。他の4人(UTG・MP・CO・BTN)はブラインドを払わない。'},
+    caption:'ブラインドとは、プリフロップで強制的に賭けさせられる少額のベット。BTNのすぐ左隣のSBが5、その隣のBBが10を払う。他の7人はブラインドを払わない。'},
   {start:'utg', banner:'プリフロップの行動順：UTGから時計回りにBBまで',
-    caption:'プリフロップはUTGが最初。UTG→MP→CO→BTN→SB→BBの順に時計回りで進み、ブラインドを払ったSB・BBが逆に最後の2人になる(BBは「オプション」を持つため一番最後)。'},
+    caption:'プリフロップはUTGが最初。UTG→UTG+1→MP→LJ→HJ→CO→BTN→SB→BBの順に時計回りで進み、ブラインドを払ったSB・BBが逆に最後の2人になる(BBは「オプション」を持つため一番最後)。'},
   {start:'sb', banner:'フロップ以降は順番が変わる：SBから時計回りにBTNまで',
-    caption:'フロップ以降は一転、SBが最初。SB→BB→UTG→MP→CO→BTNの順に進み、BTNが常に最後——これがポジションの中でBTNが最強と言われる理由。'},
+    caption:'フロップ以降は一転、SBが最初。SB→BB→UTG→UTG+1→MP→LJ→HJ→CO→BTNの順に進み、BTNが常に最後——これがレイトポジションが最強と言われる理由。'},
   {acting:'sb', banner:'SBの番：誰の反応も見られないまま判断',
     caption:'SBは、自分の手札とボードの情報だけで判断しなければならない。フロップ以降、最初に行動する立場。'},
   {acting:'bb', resolvedKeys:['sb'], banner:'BBの番：SBの行動だけは見てから判断できる',
     caption:'BBは、SBがチェックしたという情報を1つ得たうえで判断できる。'},
-  {resolvedKeys:['sb','bb','utg','mp','co'], banner:'UTG・MP・COも、順番に前の人の反応を見ながら判断していく',
-    caption:'自分より前に行動した人数が多いほど、判断材料は増えていく。'},
-  {acting:'btn', resolvedKeys:['sb','bb','utg','mp','co'], banner:'BTNの番：他の5人全員の行動を見てから判断できる',
+  {resolvedKeys:['sb','bb','utg','utg1','mp','lj','hj'], banner:'アーリー・ミドルの面々も、順番に前の人の反応を見ながら判断していく',
+    caption:'自分より前に行動した人数が多いほど、判断材料は増えていく。COはこの時点でもう7人分の情報を得られる。'},
+  {acting:'co', resolvedKeys:['sb','bb','utg','utg1','mp','lj','hj'], banner:'COの番：レイトポジションの入り口',
+    caption:'CO(カットオフ)は、BTNの1つ前。レイトポジションの中では2番目に行動するが、それでも他の7人の情報を得たうえで判断できる。'},
+  {acting:'btn', resolvedKeys:['sb','bb','utg','utg1','mp','lj','hj','co'], banner:'BTNの番：他の8人全員の行動を見てから判断できる',
     caption:'一番遅く行動するBTNが、もっとも多くの情報を得られる＝もっとも有利なポジション。テーブルの人数が増えるほど、この情報差はさらに大きくなる。'},
 ];
 function renderPositionDemo(container, idx){
@@ -782,15 +805,21 @@ function renderPositionDemo(container, idx){
     if(ev.start===s.key) classes.push('start');
     if(ev.acting===s.key) classes.push('acting');
     if(ev.resolvedKeys && ev.resolvedKeys.includes(s.key)) classes.push('resolved');
+    if(ev.zoneHighlight){
+      if(s.zone===ev.zoneHighlight) classes.push('zone-'+s.zone);
+      else classes.push('resolved');
+    }
     const label = ev.start===s.key ? `▶ ${s.name}` : s.name;
     return `<div class="${classes.join(' ')}" style="${ovalSeatStyle(i)}">
       <div class="poker-oval-seat-badge">${label}</div>
     </div>`;
   }).join('');
+  const zoneTag = ev.zoneHighlight ? `<div class="poker-oval-zone-wrap"><span class="poker-oval-zone-tag pos-cat ${ev.zoneHighlight}">${POSITION_ZONE_LABEL[ev.zoneHighlight]}</span></div>` : '';
   container.innerHTML = `
     <div class="table-felt holdem-diagram">
       <div class="holdem-flow-banner">${ev.banner}</div>
       <div class="poker-oval-wrap"><div class="poker-oval-felt"></div>${seatsHtml}</div>
+      ${zoneTag}
       <div class="holdem-caption">${ev.caption}</div>
     </div>`;
 }
@@ -815,14 +844,16 @@ function buildPosition(root, ctx){
       <div class="pos-name">${p.name}</div>
       <div class="pos-cell">${p.pre}</div>
       <div class="pos-cell">${p.post}</div>
-      <div class="pos-cat ${p.cat}">${p.cat==='early'?'早い':p.cat==='mid'?'普通':'遅い'}</div>
+      <div class="pos-cat ${p.cat}">${POSITION_ZONE_LABEL[p.cat].replace('ポジション','')}</div>
     </div>`).join('');
 
   const quizzes = [
     {q:'BTN(ボタン)は、フロップ以降は何番目に行動する？', choices:['真ん中あたり','最後(全員の後)','最初'], correct:1,
       explain:'ポストフロップでは常にボタンが最後に行動する。もっとも情報が多く得られる、最強のポジション。'},
-    {q:'UTG(アーリー)は、プリフロップで何番目に行動する？', choices:['中盤','最後','最初(ブラインドのすぐ次)'], correct:2,
+    {q:'UTGは、プリフロップで何番目に行動する？', choices:['中盤','最後','最初(ブラインドのすぐ次)'], correct:2,
       explain:'UTGは"Under The Gun"の略で、ブラインドの次、つまり一番最初に判断しなければならない。'},
+    {q:'「アーリーポジション」とは、どういう意味？', choices:['UTGだけを指す、たった1つの席の名前','UTG・UTG+1など、近い性質の複数の席をまとめた大まかな範囲の呼び方','SB・BBの別の呼び方'], correct:1,
+      explain:'「アーリー」「ミドル」「レイト」はどれも1つの席ではなく、UTG・UTG+1(アーリー)やMP・LJ・HJ(ミドル)のように、近い性質の複数席をまとめた大まかな範囲の呼び方。'},
     {q:'SB(スモールブラインド)は、フロップ以降は何番目に行動する？', choices:['最初','2番目','最後'], correct:0,
       explain:'プリフロップでは遅い方(ボタンの次)のSBだが、フロップ以降は全員の中で最初に行動しなければならない。「プリフロップは遅い＝フロップ以降も遅い」とは限らない典型例。'},
     {q:'「後で行動できるほど有利」なのはなぜ？', choices:['持ち時間が長くもらえるから','相手の行動を見てから自分の判断を決められるから','ポットに多く賭けられるから'], correct:1,
@@ -841,9 +872,9 @@ function buildPosition(root, ctx){
       <span class="step-progress" id="position-demo-progress"></span>
       <button class="btn btn-primary" id="position-demo-next">次へ ▶</button>
     </div>
-    <div class="ref-head">📋 ポジションの一覧(6人テーブルの例)</div>
+    <div class="ref-head">📋 ポジションの一覧(9人テーブルの例)</div>
     <div class="pos-table">
-      <div class="pos-row head"><div>ポジション</div><div>プリフロップ</div><div>フロップ以降</div><div>速さ</div></div>
+      <div class="pos-row head"><div>ポジション</div><div>プリフロップ</div><div>フロップ以降</div><div>分類</div></div>
       ${posTableHtml}
     </div>
     ${ctx.missionBoxHtml}
