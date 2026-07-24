@@ -238,6 +238,9 @@ a.head-reset{text-decoration:none;display:inline-flex;align-items:center}
 .holdem-seat-chip.chip-call{background:rgba(47,158,92,.6);color:#fff}
 .holdem-seat-chip.chip-raise{background:rgba(193,68,58,.65);color:#fff}
 .holdem-seat-chip.chip-fold{background:rgba(122,53,48,.6);color:#fff}
+.holdem-seat-chip.chip-order{background:rgba(0,0,0,.4);color:#f3d99a;font-weight:950}
+.holdem-seats.six{gap:8px}
+.holdem-seats.six .holdem-seat{min-width:84px;padding:8px 8px}
 .holdem-caption{color:#e5f2eb;font-size:12.5px;line-height:1.7;margin-top:14px;background:rgba(0,0,0,.2);border-radius:8px;padding:10px 12px}
 .step-controls{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0}
 .step-progress{font-size:12px;color:var(--muted);font-weight:800;min-width:60px;text-align:center}
@@ -712,31 +715,43 @@ function buildStarting(root, ctx){
    Stage: ポジションの概念
    ===================================================================== */
 const POSITION_TABLE = [
-  {name:'UTG(アーリー)', pre:'プリフロップ：最初', post:'フロップ以降：早い', cat:'early'},
-  {name:'MP(ミドル)', pre:'プリフロップ：中盤', post:'フロップ以降：普通', cat:'mid'},
-  {name:'CO(カットオフ)', pre:'プリフロップ：終盤寄り', post:'フロップ以降：やや遅い', cat:'mid'},
-  {name:'BTN(ボタン)', pre:'プリフロップ：最後', post:'フロップ以降：最後(最強)', cat:'late'},
-  {name:'SB(スモールブラインド)', pre:'プリフロップ：ボタンの次(遅い)', post:'フロップ以降：最初(早い)', cat:'early'},
-  {name:'BB(ビッグブラインド)', pre:'プリフロップ：最後', post:'フロップ以降：2番目(早い)', cat:'early'},
+  {name:'UTG(アーリー)', pre:'プリフロップ：1番目(最初)', post:'フロップ以降：3番目', cat:'early'},
+  {name:'MP(ミドル)', pre:'プリフロップ：2番目', post:'フロップ以降：4番目', cat:'mid'},
+  {name:'CO(カットオフ)', pre:'プリフロップ：3番目', post:'フロップ以降：5番目', cat:'mid'},
+  {name:'BTN(ボタン)', pre:'プリフロップ：4番目', post:'フロップ以降：6番目(最後・最強)', cat:'late'},
+  {name:'SB(スモールブラインド)', pre:'プリフロップ：5番目', post:'フロップ以降：1番目(最初)', cat:'early'},
+  {name:'BB(ビッグブラインド)', pre:'プリフロップ：6番目(最後)', post:'フロップ以降：2番目', cat:'early'},
 ];
+/* デモは下の一覧表とまったく同じ6つの座席(UTG/MP/CO/BTN/SB/BB)を使う。
+   3人だけの卓だとSB/BBが「UTG/MPの言い換え」に見えてしまうため、
+   フルテーブルで一貫させて誤解を避ける。 */
 const POSITION_DEMO_SEATS = [
-  {key:'a', name:'相手A(SB)'},
-  {key:'b', name:'相手B(BB)'},
-  {key:'you', name:'あなた(ボタン)', isYou:true},
+  {key:'utg', name:'UTG'},
+  {key:'mp', name:'MP'},
+  {key:'co', name:'CO'},
+  {key:'btn', name:'あなた(BTN)', isYou:true},
+  {key:'sb', name:'SB'},
+  {key:'bb', name:'BB'},
 ];
 const POSITION_DEMO_EVENTS = [
-  {acting:null, resolved:{a:'SB 5', b:'BB 10'}, resolvedClass:'chip-blind', banner:'プリフロップ開始：まずブラインドが強制的に賭けられる',
-    caption:'ブラインドとは、プリフロップで強制的に賭けさせられる少額のベット。ボタンのすぐ左隣(ここでは相手A)がスモールブラインド(SB)、その隣(相手B)がビッグブラインド(BB)を払う。ホールカードを見る前に払う「参加料」のようなものだ。この3人テーブルでは、座席はボタン・SB・BBの3つだけになる。'},
-  {acting:null, resolved:{a:'SB 5', b:'BB 10'}, resolvedClass:'chip-blind', banner:'ブラインドを払うと、プリフロップの行動順は「遅い」側になる',
-    caption:'SBとBBはこのハンド最初の強制ベットを払うが、その後のプリフロップの行動順では逆に最後の方(遅い側)になる。しかしフロップ以降は一転、全員の中で最初に行動しなければならない——これがブラインドの特殊なところだ。'},
-  {acting:null, resolved:{}, banner:'フロップが開いた。まだ誰も行動していない',
-    caption:'ポストフロップでは、ボタンの左隣の人から時計回りに行動する。3人テーブルなら SB → BB → ボタン の順。今回は 相手A(SB) → 相手B(BB) → あなた(ボタン) の順。'},
-  {acting:'a', resolved:{}, banner:'相手A(SB)の番：誰の反応も見られないまま判断',
-    caption:'相手A(SB)は、自分の手札とボードの情報だけで判断しなければならない。ポストフロップでは全員の中で最初に行動する、もっとも情報が少ない立場。'},
-  {acting:'b', resolved:{a:'チェック'}, banner:'相手B(BB)の番：相手A(SB)の行動だけは見てから判断できる',
-    caption:'相手B(BB)は、相手A(SB)がチェックしたという情報を1つ得たうえで判断できる。'},
-  {acting:'you', resolved:{a:'チェック', b:'ベット 20'}, banner:'あなた(ボタン)の番：相手A(SB)・相手B(BB)、両方の行動を見てから判断できる',
-    caption:'一番遅く行動するボタンが、もっとも多くの情報を得られる＝もっとも有利なポジション。相手B(BB)のベットにも「コール/レイズ/フォールド」を、相手の反応込みで判断できる。'},
+  {acting:null, resolved:{}, banner:'下の一覧表と同じ6人テーブルで見てみよう',
+    caption:'UTG・MP・CO・BTN・SB・BBの6つの座席。SB・BBは「ブラインドを払う」独立した席で、UTGやMPとは別物であることに注意しよう。'},
+  {acting:null, resolved:{sb:'SB 5', bb:'BB 10'}, resolvedClass:'chip-blind', banner:'プリフロップ開始：まずブラインドが強制的に賭けられる',
+    caption:'ブラインドとは、プリフロップで強制的に賭けさせられる少額のベット。BTNのすぐ左隣がスモールブラインド(SB)、その隣がビッグブラインド(BB)を払う。他の4人(UTG・MP・CO・BTN)はブラインドを払わない。'},
+  {acting:null, resolved:{utg:'1番目', mp:'2番目', co:'3番目', btn:'4番目', sb:'5番目', bb:'6番目'}, resolvedClass:'chip-order',
+    banner:'プリフロップの行動順：UTG→MP→CO→BTN→SB→BB',
+    caption:'ブラインドを払ったSB・BBも、プリフロップの行動順では他の4人より後、最後の2人になる(BBは「オプション」を持つため一番最後)。'},
+  {acting:null, resolved:{sb:'1番目', bb:'2番目', utg:'3番目', mp:'4番目', co:'5番目', btn:'6番目'}, resolvedClass:'chip-order',
+    banner:'フロップ以降は順番が変わる：SB→BB→UTG→MP→CO→BTN',
+    caption:'ブラインドを払ったSB・BBが一転、フロップ以降は全員の中で最初に行動しなければならなくなる。逆にBTNは常に最後——これがポジションの中でBTNが最強と言われる理由。'},
+  {acting:'sb', resolved:{}, banner:'SBの番：誰の反応も見られないまま判断',
+    caption:'SBは、自分の手札とボードの情報だけで判断しなければならない。フロップ以降、最初に行動する立場。'},
+  {acting:'bb', resolved:{sb:'チェック'}, banner:'BBの番：SBの行動だけは見てから判断できる',
+    caption:'BBは、SBがチェックしたという情報を1つ得たうえで判断できる。'},
+  {acting:null, resolved:{sb:'チェック', bb:'チェック', utg:'コール', mp:'フォールド', co:'コール'}, banner:'UTG・MP・COも、順番に前の人の反応を見ながら判断していく',
+    caption:'自分より前に行動した人数が多いほど、判断材料は増えていく。'},
+  {acting:'btn', resolved:{sb:'チェック', bb:'チェック', utg:'コール', mp:'フォールド', co:'コール'}, banner:'あなた(BTN)の番：他の5人全員の行動を見てから判断できる',
+    caption:'一番遅く行動するBTNが、もっとも多くの情報を得られる＝もっとも有利なポジション。テーブルの人数が増えるほど、この情報差はさらに大きくなる。'},
 ];
 function renderPositionDemo(container, idx){
   const ev = POSITION_DEMO_EVENTS[idx];
@@ -754,7 +769,7 @@ function renderPositionDemo(container, idx){
   container.innerHTML = `
     <div class="table-felt holdem-diagram">
       <div class="holdem-flow-banner">${ev.banner}</div>
-      <div class="holdem-seats">${seatsHtml}</div>
+      <div class="holdem-seats six">${seatsHtml}</div>
       <div class="holdem-caption">${ev.caption}</div>
     </div>`;
 }
@@ -806,12 +821,6 @@ function buildPosition(root, ctx){
       <button class="btn btn-primary" id="position-demo-next">次へ ▶</button>
     </div>
     <div class="ref-head">📋 ポジションの一覧(6人テーブルの例)</div>
-    <div class="chen-box">
-      上のデモは3人テーブル(ボタン・SB・BB)の例だった。実際のテーブルはもっと人数が多く、
-      SB・BBの他に<b>UTG・MP・CO</b>といった、ブラインドを払わない席も増える。
-      SB・BBは「ブラインドを払う」という特別な役目を持つ独立した席で、UTGやMPとは別物。
-      それぞれのポジションを一覧で確認しよう。
-    </div>
     <div class="pos-table">
       <div class="pos-row head"><div>ポジション</div><div>プリフロップ</div><div>フロップ以降</div><div>速さ</div></div>
       ${posTableHtml}
